@@ -18,6 +18,8 @@ from LSICorrelator import LSICorrelator
 from pvdb import STATIC_PV_DATABASE, SettingsPvNames
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
+from server_common.ioc_data_source import IocDataSource
+from server_common.mysql_abstraction_layer import SQLAbstraction
 
 
 def _error_handler(func):
@@ -46,7 +48,7 @@ class LSiCorrelatorDriver(Driver):
         """
         super(LSiCorrelatorDriver, self).__init__()
 
-        #device = LSICorrelator(host, firmware_revision)
+        # device = LSICorrelator(host, firmware_revision)
 
         self._correlation_type = LSI_Param.CorrelationType.AUTO
         self._normalization = LSI_Param.Normalization.COMPENSATED
@@ -189,14 +191,19 @@ def main():
     parser.add_argument("--pv_prefix", required=True, type=six.text_type,
                         help="The PV prefix of this instrument.")
 
-
     args = parser.parse_args()
 
     FILEPATH_MANAGER.initialise(os.path.normpath(os.getenv("ICPCONFIGROOT")), "", "")
 
+    print("IOC started")
+
     serve_forever(
         args.pv_prefix,
     )
+
+    #ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
+    #ioc_data_source.insert_ioc_start("LSI", os.getpid(), sys.argv[0], STATIC_PV_DATABASE, "TE:NDW1836:LSI:")
+
 
 
 if __name__ == "__main__":

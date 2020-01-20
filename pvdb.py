@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.utilities import char_waveform
 
-sys.path.insert(0, 'C:\\Instrument\\Dev\\LSI-Correlator')
+sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
 
 from LSI import LSI_Param
 
@@ -30,12 +30,12 @@ class SettingsPvNames(object):
 
 
 STATIC_PV_DATABASE = {
-    SettingsPvNames.CORRELATIONTYPE : {'type': 'enum', 'enums': [member.name for member in LSI_Param.CorrelationType]},
-    SettingsPvNames.NORMALIZATION : {'type': 'enum', 'enums': [member.name for member in LSI_Param.Normalization]},
-    SettingsPvNames.MEASUREMENTDURATION : STANDARD_FLOAT_PV_FIELDS,
-    SettingsPvNames.SWAPCHANNELS : {'type': 'enum', 'enums' : [member.name for member in LSI_Param.SwapChannels]},
-    SettingsPvNames.SAMPLINGTIMEMULTIT : {'type': 'enum', 'enums' :[member.name for member in LSI_Param.SamplingTimeMultiT]},
-    SettingsPvNames.TRANSFERRATE : {'type': 'enum', 'enums':[member.name for member in LSI_Param.TransferRate]},
-    SettingsPvNames.OVERLOADLIMIT : {'type': 'int'},
-    SettingsPvNames.OVERLOADTIMEINTERVAL : {'type': 'int'}
+    SettingsPvNames.CORRELATIONTYPE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.CorrelationType]},
+    SettingsPvNames.NORMALIZATION: {'type': 'enum', 'enums': [member.name for member in LSI_Param.Normalization]},
+    SettingsPvNames.MEASUREMENTDURATION: STANDARD_FLOAT_PV_FIELDS,
+    SettingsPvNames.SWAPCHANNELS: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SwapChannels]},
+    SettingsPvNames.SAMPLINGTIMEMULTIT: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SamplingTimeMultiT]},
+    SettingsPvNames.TRANSFERRATE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.TransferRate]},
+    SettingsPvNames.OVERLOADLIMIT: {'type': 'int'},
+    SettingsPvNames.OVERLOADTIMEINTERVAL: {'type': 'int'}
 }
