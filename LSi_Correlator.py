@@ -7,6 +7,7 @@ import traceback
 import six
 
 from pcaspy import SimpleServer, Driver
+from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
@@ -30,6 +31,9 @@ def _error_handler(func):
         except Exception:
             print_and_log(traceback.format_exc(), src="lsi ")
     return _wrapper
+
+
+THREADPOOL = ThreadPoolExecutor()
 
 
 class LSiCorrelatorDriver(Driver):
@@ -66,14 +70,15 @@ class LSiCorrelatorDriver(Driver):
         """
         Handle write to PV
         Args:
-            reason: PV to set value of
+            reason (str): PV to set value of
             value: Value to set
         """
-        print_and_log("RemoteIocListDriver: Processing PV write for reason {}".format(reason))
-        if reason in SettingsPvNames:
-            self.apply_setting()
+        print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
+
+        if reason in STATIC_PV_DATABASE.keys():
+            THREADPOOL.submit(self.update_pv_value, reason, value)
         else:
-            print_and_log("RemoteIocListDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
+            print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
 
         # Update PVs after any write.
         self.updatePVs()
@@ -83,20 +88,36 @@ class LSiCorrelatorDriver(Driver):
         """
         Handle read of PV
         Args:
-            reason: PV to read value of
+            reason (str): PV to read value of
         """
-        print_and_log("RemoteIocListDriver: Processing PV read for reason {}".format(reason))
+        print_and_log("LSiCorrelatorDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-        if reason in STATIC_PV_DATABASE.keys():
+        if reason == SettingsPvNames.MEASUREMENTDURATION:
+            return self._measurement_duration
+        elif reason in STATIC_PV_DATABASE.keys():
             return 300.0
         else:
-            print_and_log("RemoteIocListDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
+            print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
 
         #if reason == PvNames.INSTRUMENT:
         #    return six.binary_type(self._remote_pv_prefix if self._remote_pv_prefix is not None else "NONE")
         #else:
         #    print_and_log("RemoteIocListDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
+
+    def update_pv_value(self, reason, value):
+        """
+        Adds a PV update to the thread pool
+
+        Args:
+            reason (str): PV to read
+            value: The value to set
+        """
+
+        if reason == SettingsPvNames.MEASUREMENTDURATION:
+            self._measurement_duration = value
+
+
 
     def configure_device(self):
         """
@@ -117,10 +138,9 @@ class LSiCorrelatorDriver(Driver):
 
         Args:
             reason (string): The name of the PV to update
-            value (string?): The new value of the PV
+            value : The new value of the PV
         """
         pass
-
 
     def take_data(self, number_of_repetitions):
         pass
@@ -134,7 +154,7 @@ class LSiCorrelatorDriver(Driver):
         Returns:
 
         """
-        print_and_log("RemoteIocListDriver: setting instrument to {} (old: {})"
+        print_and_log("LSiCorrelatorDriver: setting instrument to {} (old: {})"
                       .format(remote_pv_prefix, self._remote_pv_prefix))
         self._remote_pv_prefix = remote_pv_prefix
         self._autosave.write_parameter(AUTOSAVE_REMOTE_PREFIX_NAME, remote_pv_prefix)
@@ -143,7 +163,7 @@ class LSiCorrelatorDriver(Driver):
         THREADPOOL.submit(self.restart_all_iocs)
         THREADPOOL.submit(self._gateway.set_remote_pv_prefix, remote_pv_prefix)
         self.updatePVs()
-        print_and_log("RemoteIocListDriver: Finished setting instrument to {}".format(self._remote_pv_prefix))
+        print_and_log("LSiCorrelatorDriver: Finished setting instrument to {}".format(self._remote_pv_prefix))
 
 
 def serve_forever(pv_prefix):
@@ -203,7 +223,6 @@ def main():
 
     #ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
     #ioc_data_source.insert_ioc_start("LSI", os.getpid(), sys.argv[0], STATIC_PV_DATABASE, "TE:NDW1836:LSI:")
-
 
 
 if __name__ == "__main__":
