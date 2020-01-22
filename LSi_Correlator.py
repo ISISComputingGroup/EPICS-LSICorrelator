@@ -120,8 +120,10 @@ class LSiCorrelatorDriver(Driver):
 
         if reason == PvNames.MEASUREMENTDURATION:
             return self._measurement_duration
-        elif reason in PvNames.ERRORMSG:
+        elif reason == PvNames.ERRORMSG:
             return self._error_message
+        elif reason == PvNames.CORRELATIONTYPE:
+            return self._correlation_type.value
         elif reason in STATIC_PV_DATABASE.keys():
             return 300.0
         else:
