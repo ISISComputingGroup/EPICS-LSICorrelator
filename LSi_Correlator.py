@@ -4,6 +4,8 @@ import argparse
 import sys
 import os
 import traceback
+from collections import namedtuple
+
 import six
 
 from pcaspy import SimpleServer, Driver
@@ -60,6 +62,11 @@ def needs_rounding(reason):
         return False
 
 
+# SettingPVConfig is a data type to store information about the PVs used to set parameters in the LSi driver.
+# sanitise is a function which takes in the raw PV value and returns it in a form which can be accepted by the driver.
+# set_on_device is the function in the LSICorrelator class which writes the requested setting.
+SettingPVConfig = namedtuple("SettingPVConfig", ["sanitise", "set_on_device"])
+
 class LSiCorrelatorDriver(Driver):
     """
     A driver for the LSi Correlator
@@ -78,17 +85,38 @@ class LSiCorrelatorDriver(Driver):
 
         self.device = LSICorrelator(host, firmware_revision)
 
-        self._correlation_type = LSI_Param.CorrelationType.AUTO
-        self._normalization = LSI_Param.Normalization.COMPENSATED
-        self._measurement_duration = 300
-        self._swap_channels = LSI_Param.SwapChannels.ChA_ChB
-        self._sampling_time_multi_t = LSI_Param.SamplingTimeMultiT.ns200
-        self._transfer_rate = LSI_Param.TransferRate.ms100
-        self._overload_limit = 20
-        self._overload_time_interval = 400
-        self._error_message = ""
+        self.SettingPVs = {
+            PvNames.CORRELATIONTYPE: SettingPVConfig(sanitise=LSI_Param.CorrelationType, set_on_device=self.device.setCorrelationType),
+            PvNames.NORMALIZATION: SettingPVConfig(sanitise=LSI_Param.Normalization, set_on_device=self.device.setNormalization),
+            PvNames.MEASUREMENTDURATION: SettingPVConfig(sanitise=round, set_on_device=self.device.setMeasurementDuration),
+            PvNames.SWAPCHANNELS: SettingPVConfig(sanitise=LSI_Param.SwapChannels, set_on_device=self.device.setSwapChannels),
+            PvNames.SAMPLINGTIMEMULTIT: SettingPVConfig(sanitise=LSI_Param.SamplingTimeMultiT, set_on_device=self.device.setSamplingTimeMultiT),
+            PvNames.TRANSFERRATE: SettingPVConfig(sanitise=LSI_Param.TransferRate, set_on_device=self.device.setTransferRate),
+            PvNames.OVERLOADLIMIT: SettingPVConfig(sanitise=round, set_on_device=self.device.setOverloadLimit),
+            PvNames.OVERLOADINTERVAL: SettingPVConfig(sanitise=round, set_on_device=self.device.setOverloadTimeInterval),
+        }
 
+        self.PVValues = {
+            PvNames.CORRELATIONTYPE: LSI_Param.CorrelationType.AUTO,
+            PvNames.NORMALIZATION: LSI_Param.Normalization.COMPENSATED,
+            PvNames.MEASUREMENTDURATION: 300,
+            PvNames.SWAPCHANNELS: LSI_Param.SwapChannels.ChA_ChB,
+            PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns200,
+            PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
+            PvNames.OVERLOADLIMIT: 20,
+            PvNames.OVERLOADINTERVAL: 400,
+            PvNames.ERRORMSG: ""
+        }
         self.updatePVs()
+
+    def update_error_pv(self, error_message):
+        """
+        Helper function to update the error string PV
+
+        Args:
+            error_message (str): The string to write to the error PV
+        """
+        self.PVValues[PvNames.ERRORMSG] = error_message
 
     @_error_handler
     def write(self, reason, value):
@@ -118,16 +146,21 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-        if reason == PvNames.MEASUREMENTDURATION:
-            return self._measurement_duration
-        elif reason == PvNames.ERRORMSG:
-            return self._error_message
-        elif reason == PvNames.CORRELATIONTYPE:
-            return self._correlation_type.value
-        elif reason in STATIC_PV_DATABASE.keys():
-            return 300.0
-        else:
+        try:
+            return self.PVValues[reason]
+        except KeyError:
             print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
+
+        # if reason == PvNames.MEASUREMENTDURATION:
+        #     return self._measurement_duration
+        # elif reason == PvNames.ERRORMSG:
+        #     return self._error_message
+        # elif reason == PvNames.CORRELATIONTYPE:
+        #     return self._correlation_type.value
+        # elif reason in STATIC_PV_DATABASE.keys():
+        #     return 300.0
+        # else:
+        #     print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
 
         #if reason == PvNames.INSTRUMENT:
         #    return six.binary_type(self._remote_pv_prefix if self._remote_pv_prefix is not None else "NONE")
@@ -145,15 +178,19 @@ class LSiCorrelatorDriver(Driver):
         """
 
         # Loop through all settings pvs
-        if reason in dir(PvNames):
-            try:
-                sanitised_value = self.sanitise_input(reason, value)
-                self.write_setting(reason, sanitised_value)
+        #if reason in dir(PvNames):
+        try:
+            sanitised_value = self.SettingPVs[reason].sanitise(value)
+            self.SettingPVs[reason].set_on_device(sanitised_value)
+            #self.write_setting(reason, sanitised_value)
 
-                self._measurement_duration = sanitised_value
-            except ValueError as err:
-                print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
-                self._error_message = "{}".format(err)
+            #self._measurement_duration = sanitised_value
+            self.PVValues[reason] = sanitised_value
+        except ValueError as err:
+            print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
+            self.update_error_pv("{}".format(err))
+        except KeyError:
+            print_and_log("Can't write to PV {}, PV not found".format(reason))
 
     @_error_handler
     def sanitise_input(self, reason, value):
@@ -224,8 +261,8 @@ class LSiCorrelatorDriver(Driver):
         Args:
             value (float): The duration of the measurement in seconds
         """
-        device_setter = self.get_device_setting_function(reason)
-        device_setter(value)
+        set_on_device = self.get_device_setting_function(reason)
+        set_on_device(value)
 
     def apply_setting(self, pv, value):
         """
