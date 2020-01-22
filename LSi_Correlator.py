@@ -5,6 +5,7 @@ import sys
 import os
 import traceback
 from collections import namedtuple
+from enum import Enum
 
 import six
 
@@ -137,11 +138,15 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-        if STATIC_PV_DATABASE[reason]['type'] == 'enum':
-            return self.PVValues[reason].value
-
         try:
-            return self.PVValues[reason]
+            PV_value = self.PVValues[reason]
+
+            if isinstance(PV_value, Enum):
+                return_value = PV_value.value
+            else:
+                return_value = PV_value
+            return return_value
+
         except KeyError:
             print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
 
