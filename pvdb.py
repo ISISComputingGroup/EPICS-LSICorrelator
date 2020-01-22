@@ -6,8 +6,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pa
 from server_common.utilities import char_waveform
 
 sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
-
 from LSI import LSI_Param
+
 
 PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
@@ -18,7 +18,7 @@ STANDARD_FLOAT_PV_FIELDS = {'type': 'float', 'prec': 3, 'value': 0.0}
 #ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
 
 
-class SettingsPvNames(object):
+class PvNames(object):
     CORRELATIONTYPE = "CORRELATIONTYPE"
     NORMALIZATION = "NORMALIZATION"
     MEASUREMENTDURATION = "MEASUREMENTDURATION"
@@ -30,12 +30,12 @@ class SettingsPvNames(object):
 
 
 STATIC_PV_DATABASE = {
-    SettingsPvNames.CORRELATIONTYPE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.CorrelationType]},
-    SettingsPvNames.NORMALIZATION: {'type': 'enum', 'enums': [member.name for member in LSI_Param.Normalization]},
-    SettingsPvNames.MEASUREMENTDURATION: STANDARD_FLOAT_PV_FIELDS,
-    SettingsPvNames.SWAPCHANNELS: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SwapChannels]},
-    SettingsPvNames.SAMPLINGTIMEMULTIT: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SamplingTimeMultiT]},
-    SettingsPvNames.TRANSFERRATE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.TransferRate]},
-    SettingsPvNames.OVERLOADLIMIT: {'type': 'int'},
-    SettingsPvNames.OVERLOADTIMEINTERVAL: {'type': 'int'}
+    PvNames.CORRELATIONTYPE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.CorrelationType]},
+    PvNames.NORMALIZATION: {'type': 'enum', 'enums': [member.name for member in LSI_Param.Normalization]},
+    PvNames.MEASUREMENTDURATION: {'type': 'int'},
+    PvNames.SWAPCHANNELS: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SwapChannels]},
+    PvNames.SAMPLINGTIMEMULTIT: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SamplingTimeMultiT]},
+    PvNames.TRANSFERRATE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.TransferRate]},
+    PvNames.OVERLOADLIMIT: {'type': 'int'},
+    PvNames.OVERLOADTIMEINTERVAL: {'type': 'int'}
 }

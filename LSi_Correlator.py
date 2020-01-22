@@ -16,7 +16,7 @@ sys.path.insert(2, 'C:\\Instrument\\Apps\\EPICS\\ISIS\\inst_servers\\master\\')
 from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 
-from pvdb import STATIC_PV_DATABASE, SettingsPvNames
+from pvdb import STATIC_PV_DATABASE, PvNames
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
@@ -36,6 +36,16 @@ def _error_handler(func):
 THREADPOOL = ThreadPoolExecutor()
 
 
+def get_pv_data_type(reason):
+    """
+    Returns the data type of the given PV
+    Args:
+        reason (string): The PV to get the data type of
+    """
+
+    return STATIC_PV_DATABASE[reason].type
+
+
 class LSiCorrelatorDriver(Driver):
     """
     A driver for the LSi Correlator
@@ -52,7 +62,7 @@ class LSiCorrelatorDriver(Driver):
         """
         super(LSiCorrelatorDriver, self).__init__()
 
-        # device = LSICorrelator(host, firmware_revision)
+        self.device = LSICorrelator(host, firmware_revision)
 
         self._correlation_type = LSI_Param.CorrelationType.AUTO
         self._normalization = LSI_Param.Normalization.COMPENSATED
@@ -93,7 +103,7 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-        if reason == SettingsPvNames.MEASUREMENTDURATION:
+        if reason == PvNames.MEASUREMENTDURATION:
             return self._measurement_duration
         elif reason in STATIC_PV_DATABASE.keys():
             return 300.0
@@ -105,6 +115,7 @@ class LSiCorrelatorDriver(Driver):
         #else:
         #    print_and_log("RemoteIocListDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
 
+    @_error_handler
     def update_pv_value(self, reason, value):
         """
         Adds a PV update to the thread pool
@@ -114,10 +125,15 @@ class LSiCorrelatorDriver(Driver):
             value: The value to set
         """
 
-        if reason == SettingsPvNames.MEASUREMENTDURATION:
+        if reason == PvNames.MEASUREMENTDURATION:
+            try:
+                self.write_measurement_duration(value)
+            except ValueError as e:
+                print_and_log("Failed to set {} to {}".format(reason, value))
+                raise e
+
+            # Only update value if LSi code hasn't returned a ValueError
             self._measurement_duration = value
-
-
 
     def configure_device(self):
         """
@@ -132,7 +148,36 @@ class LSiCorrelatorDriver(Driver):
         self.device.setOverloadLimit(20)
         self.device.setOverloadTimeInterval(400)
 
-    def apply_setting(self, reason, value):
+    def get_device_setting_function(self, reason):
+        """
+        Returns the setter on the LSi device driver for the requested PV
+
+        Args:
+            reason (string): The PV being written to
+        """
+        pv_lookup = {
+            "CORRELATIONTYPE": self.device.setCorrelationType,
+            "NORMALIZATION": self.device.setNormalization,
+            "MEASUREMENTDURATION": self.device.setMeasurementDuration,
+            "SWAPCHANNELS": self.device.setSwapChannels,
+            "SAMPLINGTIMEMULTIT": self.device.setSamplingTimeMultiT,
+            "TRANSFERRATE": self.device.setTransferRate,
+            "OVERLOADLIMIT": self.device.setOverloadLimit,
+            "OVERLOADINTERVAL": self.device.setOverloadTimeInterval
+        }
+
+        return pv_lookup[reason]
+
+    def write_measurement_duration(self, value):
+        """
+        Sets the measurment duration in the LSi Correlator class to value
+        Args:
+            value (float): The duration of the measurement in seconds
+        """
+        device_setter = self.get_device_setting_function("MEASUREMENTDURATION")
+        device_setter(value)
+
+    def apply_setting(self, pv, value):
         """
         Updates a setting PV with value.
 
@@ -140,6 +185,7 @@ class LSiCorrelatorDriver(Driver):
             reason (string): The name of the PV to update
             value : The new value of the PV
         """
+
         pass
 
     def take_data(self, number_of_repetitions):
