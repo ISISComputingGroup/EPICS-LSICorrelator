@@ -45,6 +45,18 @@ def get_pv_data_type(reason):
 
     return STATIC_PV_DATABASE[reason].type
 
+def needs_rounding(reason):
+    """
+    Returns True if the supplied reason is an integer value which has a float PV. Otherwise False
+    Args:
+        reason (string): The PV which has been written to
+    """
+    int_pvs = [PvNames.OVERLOADLIMIT, PvNames.OVERLOADTIMEINTERVAL, PvNames.MEASUREMENTDURATION]
+    if reason in int_pvs:
+        return True
+    else:
+        return False
+
 
 class LSiCorrelatorDriver(Driver):
     """
@@ -125,6 +137,9 @@ class LSiCorrelatorDriver(Driver):
             value: The value to set
         """
 
+        if needs_rounding(reason):
+            value = round(value)
+
         if reason == PvNames.MEASUREMENTDURATION:
             try:
                 self.write_measurement_duration(value)
@@ -134,19 +149,6 @@ class LSiCorrelatorDriver(Driver):
 
             # Only update value if LSi code hasn't returned a ValueError
             self._measurement_duration = value
-
-    def configure_device(self):
-        """
-        Applies configuration parameters to the device
-        """
-        self.device.setCorrelationType(LSI_Param.CorrelationType.AUTO)
-        self.device.setNormalization(LSI_Param.Normalization.COMPENSATED)
-        self.device.setMeasurementDuration(300)
-        self.device.setSwapChannels(LSI_Param.SwapChannels.ChA_ChB)
-        self.device.setSamplingTimeMultiT(LSI_Param.SamplingTimeMultiT.ns200)
-        self.device.setTransferRate(LSI_Param.TransferRate.ms100)
-        self.device.setOverloadLimit(20)
-        self.device.setOverloadTimeInterval(400)
 
     def get_device_setting_function(self, reason):
         """
@@ -167,6 +169,8 @@ class LSiCorrelatorDriver(Driver):
         }
 
         return pv_lookup[reason]
+
+
 
     def write_measurement_duration(self, value):
         """
