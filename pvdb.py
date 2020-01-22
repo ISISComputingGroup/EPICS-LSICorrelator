@@ -28,6 +28,7 @@ class PvNames(object):
     TRANSFERRATE = "TRANSFERRATE"
     OVERLOADLIMIT = "OVERLOADLIMIT"
     OVERLOADTIMEINTERVAL = "OVERLOADINTERVAL"
+    ERRORMSG = "ERRORMSG"
 
 
 STATIC_PV_DATABASE = {
@@ -38,5 +39,6 @@ STATIC_PV_DATABASE = {
     PvNames.SAMPLINGTIMEMULTIT: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SamplingTimeMultiT]},
     PvNames.TRANSFERRATE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.TransferRate]},
     PvNames.OVERLOADLIMIT: FLOAT_AS_INT_PV_FIELDS,
-    PvNames.OVERLOADTIMEINTERVAL: FLOAT_AS_INT_PV_FIELDS
+    PvNames.OVERLOADTIMEINTERVAL: FLOAT_AS_INT_PV_FIELDS,
+    PvNames.ERRORMSG: {'type': 'char', 'count': 400}
 }

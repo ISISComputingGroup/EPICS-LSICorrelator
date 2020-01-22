@@ -86,6 +86,7 @@ class LSiCorrelatorDriver(Driver):
         self._transfer_rate = LSI_Param.TransferRate.ms100
         self._overload_limit = 20
         self._overload_time_interval = 400
+        self._error_message = ""
 
         self.updatePVs()
 
@@ -119,6 +120,8 @@ class LSiCorrelatorDriver(Driver):
 
         if reason == PvNames.MEASUREMENTDURATION:
             return self._measurement_duration
+        elif reason in PvNames.ERRORMSG:
+            return self._error_message
         elif reason in STATIC_PV_DATABASE.keys():
             return 300.0
         else:
@@ -145,12 +148,12 @@ class LSiCorrelatorDriver(Driver):
         if reason == PvNames.MEASUREMENTDURATION:
             try:
                 self.write_measurement_duration(value)
-            except ValueError as e:
-                print_and_log("Failed to set {} to {}".format(reason, value))
-                raise e
-
-            # Only update value if LSi code hasn't returned a ValueError
-            self._measurement_duration = value
+            except ValueError as err:
+                print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=e))
+                self._error_message = "{}".format(err)
+            else:
+                # Only update value if LSi code hasn't returned a ValueError
+                self._measurement_duration = value
 
     def get_device_setting_function(self, reason):
         """
@@ -171,8 +174,6 @@ class LSiCorrelatorDriver(Driver):
         }
 
         return pv_lookup[reason]
-
-
 
     def write_measurement_duration(self, value):
         """
