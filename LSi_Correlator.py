@@ -45,14 +45,16 @@ def get_pv_data_type(reason):
 
     return STATIC_PV_DATABASE[reason].type
 
+
 def needs_rounding(reason):
     """
-    Returns True if the supplied reason is an integer value which has a float PV. Otherwise False
+    Returns True if the PV is a float acting as an integer (has zero precision). Otherwise False
     Args:
         reason (string): The PV which has been written to
     """
-    int_pvs = [PvNames.OVERLOADLIMIT, PvNames.OVERLOADTIMEINTERVAL, PvNames.MEASUREMENTDURATION]
-    if reason in int_pvs:
+    pv = STATIC_PV_DATABASE[reason]
+
+    if 'prec' in pv and pv['type'] == 'float' and pv['prec'] == 0:
         return True
     else:
         return False
