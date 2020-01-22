@@ -144,18 +144,59 @@ class LSiCorrelatorDriver(Driver):
             value: The value to set
         """
 
-        if needs_rounding(reason):
-            value = round(value)
-
-        if reason == PvNames.MEASUREMENTDURATION:
+        # Loop through all settings pvs
+        if reason in dir(PvNames):
             try:
-                self.write_measurement_duration(value)
+                sanitised_value = self.sanitise_input(reason, value)
+                self.write_setting(reason, sanitised_value)
+
+                self._measurement_duration = sanitised_value
             except ValueError as err:
                 print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
                 self._error_message = "{}".format(err)
-            else:
-                # Only update value if LSi code hasn't returned a ValueError
-                self._measurement_duration = value
+
+    @_error_handler
+    def sanitise_input(self, reason, value):
+        """
+        Converts the given input (value) to the form required for the LSi code
+
+        Args:
+            reason (str): The PV written to
+            value: The value written to the PV
+
+        Returns:
+            sanitised_value: The input cast to the form required for the LSi driver
+        """
+
+        if reason == PvNames.CORRELATIONTYPE:
+            sanitised_value = LSI_Param.CorrelationType(value)
+            print_and_log(sanitised_value)
+
+        elif reason == PvNames.NORMALIZATION:
+            sanitised_value = LSI_Param.Normalization(value)
+
+        elif reason == PvNames.MEASUREMENTDURATION:
+            sanitised_value = round(value)
+
+        elif reason == PvNames.SWAPCHANNELS:
+            sanitised_value = LSI_Param.SwapChannels(value)
+
+        elif reason == PvNames.SAMPLINGTIMEMULTIT:
+            sanitised_value = LSI_Param.SamplingTimeMultiT(value)
+
+        elif reason == PvNames.TRANSFERRATE:
+            sanitised_value = LSI_Param.TransferRate(value)
+
+        elif reason == PvNames.OVERLOADLIMIT:
+            sanitised_value = round(value)
+
+        elif reason == PvNames.OVERLOADINTERVAL:
+            sanitised_value = round(value)
+
+        else:
+            raise AttributeError("LSiCorrelatorDriver: Could not find pv {}".format(reason))
+
+        return sanitised_value
 
     def get_device_setting_function(self, reason):
         """
@@ -177,13 +218,13 @@ class LSiCorrelatorDriver(Driver):
 
         return pv_lookup[reason]
 
-    def write_measurement_duration(self, value):
+    def write_setting(self, reason, value):
         """
         Sets the measurment duration in the LSi Correlator class to value
         Args:
             value (float): The duration of the measurement in seconds
         """
-        device_setter = self.get_device_setting_function("MEASUREMENTDURATION")
+        device_setter = self.get_device_setting_function(reason)
         device_setter(value)
 
     def apply_setting(self, pv, value):
