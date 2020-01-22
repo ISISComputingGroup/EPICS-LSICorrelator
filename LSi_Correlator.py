@@ -149,7 +149,7 @@ class LSiCorrelatorDriver(Driver):
             try:
                 self.write_measurement_duration(value)
             except ValueError as err:
-                print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=e))
+                print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
                 self._error_message = "{}".format(err)
             else:
                 # Only update value if LSi code hasn't returned a ValueError
