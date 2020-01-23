@@ -6,6 +6,7 @@ import os
 import traceback
 from collections import namedtuple
 from enum import Enum
+from functools import partial
 
 import six
 
@@ -40,9 +41,24 @@ THREADPOOL = ThreadPoolExecutor()
 
 
 # SettingPVConfig is a data type to store information about the PVs used to set parameters in the LSi driver.
-# sanitise is a function which takes in the raw PV value and returns it in a form which can be accepted by the driver.
+# convert_from_pv is a function which takes in the raw PV value and returns it in a form which can be accepted by the driver.
 # set_on_device is the function in the LSICorrelator class which writes the requested setting.
-SettingPVConfig = namedtuple("SettingPVConfig", ["sanitise", "set_on_device"])
+SettingPVConfig = namedtuple("SettingPVConfig", ["convert_from_pv", "set_on_device"], defaults=(None, None))
+
+
+def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
+    """
+    Takes the value of the enum from the PV and returns the LSI_Param associated with this value
+
+    Args:
+        enum_class (Enum): The LSI_Param Enum containing the device parameters
+        pv_value (int): The enumerated value from the PV
+    """
+    return [enum for enum in enum_class][pv_value]
+
+
+def no_nothing(value):
+    return value
 
 
 class LSiCorrelatorDriver(Driver):
@@ -64,28 +80,30 @@ class LSiCorrelatorDriver(Driver):
         self.device = LSICorrelator(host, firmware_revision)
 
         self.SettingPVs = {
-            PvNames.CORRELATIONTYPE: SettingPVConfig(sanitise=LSI_Param.CorrelationType,
+            #convert_from_pv_fn
+            #convert_to_pv_fn
+            PvNames.CORRELATIONTYPE: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.CorrelationType),
                                                      set_on_device=self.device.setCorrelationType),
 
-            PvNames.NORMALIZATION: SettingPVConfig(sanitise=LSI_Param.Normalization,
+            PvNames.NORMALIZATION: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.Normalization),
                                                    set_on_device=self.device.setNormalization),
 
-            PvNames.MEASUREMENTDURATION: SettingPVConfig(sanitise=round,
+            PvNames.MEASUREMENTDURATION: SettingPVConfig(convert_from_pv=round,
                                                          set_on_device=self.device.setMeasurementDuration),
 
-            PvNames.SWAPCHANNELS: SettingPVConfig(sanitise=LSI_Param.SwapChannels,
+            PvNames.SWAPCHANNELS: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.SwapChannels),
                                                   set_on_device=self.device.setSwapChannels),
 
-            PvNames.SAMPLINGTIMEMULTIT: SettingPVConfig(sanitise=LSI_Param.SamplingTimeMultiT,
+            PvNames.SAMPLINGTIMEMULTIT: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.SamplingTimeMultiT),
                                                         set_on_device=self.device.setSamplingTimeMultiT),
 
-            PvNames.TRANSFERRATE: SettingPVConfig(sanitise=LSI_Param.TransferRate,
+            PvNames.TRANSFERRATE: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.TransferRate),
                                                   set_on_device=self.device.setTransferRate),
 
-            PvNames.OVERLOADLIMIT: SettingPVConfig(sanitise=round,
+            PvNames.OVERLOADLIMIT: SettingPVConfig(convert_from_pv=round,
                                                    set_on_device=self.device.setOverloadLimit),
 
-            PvNames.OVERLOADINTERVAL: SettingPVConfig(sanitise=round,
+            PvNames.OVERLOADINTERVAL: SettingPVConfig(convert_from_pv=round,
                                                       set_on_device=self.device.setOverloadTimeInterval),
         }
 
@@ -120,6 +138,11 @@ class LSiCorrelatorDriver(Driver):
             value: Value to set
         """
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
+
+        PV_value = self.PVValues[reason]
+        if isinstance(PV_value, Enum):
+            []
+
 
         if reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
@@ -161,12 +184,13 @@ class LSiCorrelatorDriver(Driver):
             value: The value to set
         """
 
-        try:
-            sanitised_value = self.SettingPVs[reason].sanitise(value)
-            self.SettingPVs[reason].set_on_device(sanitised_value)
+        print_and_log(value)
+        print_and_log(self.SettingPVs[reason].convert_from_pv(value))
 
-            if 'CORRELATION' in reason:
-                print_and_log("setting {} to {}".format(reason, sanitised_value))
+        try:
+            sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
+            print_and_log("setting {} to {}".format(reason, sanitised_value))
+            self.SettingPVs[reason].set_on_device(sanitised_value)
 
             self.PVValues[reason] = sanitised_value
         except ValueError as err:
