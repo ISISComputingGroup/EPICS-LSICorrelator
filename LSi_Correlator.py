@@ -27,6 +27,8 @@ from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
 
+from PVConfig import get_pv_configs
+
 def _error_handler(func):
     @six.wraps(func)
     def _wrapper(*args, **kwargs):
@@ -96,8 +98,6 @@ class LSiCorrelatorDriver(Driver):
         self.device = LSICorrelator(host, firmware_revision)
 
         self.SettingPVs = {
-            #convert_from_pv_fn
-            #convert_to_pv_fn
             PvNames.CORRELATIONTYPE: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.CorrelationType),
                                                      convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.CorrelationType),
                                                      set_on_device=self.device.setCorrelationType),
@@ -129,6 +129,8 @@ class LSiCorrelatorDriver(Driver):
 
             PvNames.ERRORMSG: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing)
         }
+
+        self.SettingPVs = get_pv_configs(self.device)
 
         self.PVValues = {
             PvNames.CORRELATIONTYPE: LSI_Param.CorrelationType.AUTO,
