@@ -4,9 +4,6 @@ import argparse
 import sys
 import os
 import traceback
-from collections import namedtuple
-from enum import Enum
-from functools import partial
 
 import six
 
@@ -21,12 +18,12 @@ from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 
 from pvdb import STATIC_PV_DATABASE, PvNames
+from PVConfig import get_pv_configs
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
-from PVConfig import get_pv_configs
 
 def _error_handler(func):
     @six.wraps(func)
@@ -92,11 +89,6 @@ class LSiCorrelatorDriver(Driver):
             value: Value to set
         """
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
-
-        PV_value = self.PVValues[reason]
-        if isinstance(PV_value, Enum):
-            []
-
 
         if reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
