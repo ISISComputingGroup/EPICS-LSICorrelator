@@ -9,6 +9,9 @@ import six
 
 from pcaspy import SimpleServer, Driver
 from concurrent.futures import ThreadPoolExecutor
+import numpy as np
+
+from time import sleep
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
@@ -67,9 +70,19 @@ class LSiCorrelatorDriver(Driver):
             PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
             PvNames.OVERLOADLIMIT: 20,
             PvNames.OVERLOADINTERVAL: 400,
-            PvNames.ERRORMSG: ""
+            PvNames.ERRORMSG: "",
+            PvNames.TAKEDATA: 0
         }
+
+        for pv, preset in self.PVValues.items():
+            # Write defaults to device
+            print('setting {} to {}', pv, preset)
+            self.SettingPVs[pv].set_on_device(preset)
+
         self.updatePVs()
+
+        self._corr = []
+        self._lags = []
 
     def update_error_pv(self, error_message):
         """
@@ -90,7 +103,9 @@ class LSiCorrelatorDriver(Driver):
         """
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
 
-        if reason in STATIC_PV_DATABASE.keys():
+        if reason == PvNames.TAKEDATA:
+            self.take_data(1)
+        elif reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
         else:
             print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
@@ -131,6 +146,9 @@ class LSiCorrelatorDriver(Driver):
         print_and_log(value)
         print_and_log(self.SettingPVs[reason].convert_from_pv(value))
 
+        if reason == PvNames.TAKEDATA:
+            self.take_data(1)
+
         try:
             sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
             print_and_log("setting {} to {}".format(reason, sanitised_value))
@@ -152,8 +170,22 @@ class LSiCorrelatorDriver(Driver):
         device_setter = self.get_device_setting_function(reason)
         device_setter(value)
 
+    @_error_handler
     def take_data(self, number_of_repetitions):
-        pass
+        self.device.configure()
+        self.device.start()
+
+        while self.device.MeasurementOn():
+            sleep(0.5)
+            self.device.update()
+        
+        Corr = np.asarray(self.device.Correlation)
+        Lags = np.asarray(self.device.Lags)
+        Lags = Lags[np.isfinite(Corr)]
+        Corr = Corr[np.isfinite(Corr)]
+
+        self._corr = Corr
+        self._lags = Lags
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
         """
