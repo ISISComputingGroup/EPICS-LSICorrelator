@@ -1,26 +1,10 @@
-#import sys
-#import os
-#import traceback
 from collections import namedtuple
 from enum import Enum
 from functools import partial
-#
-#import six
-#
-#from pcaspy import SimpleServer, Driver
-#from concurrent.futures import ThreadPoolExecutor
-#
-#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
-#sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
-#sys.path.insert(2, 'C:\\Instrument\\Apps\\EPICS\\ISIS\\inst_servers\\master\\')
-#
+
 from LSI import LSI_Param
-#
 from pvdb import STATIC_PV_DATABASE, PvNames
-#from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-#from server_common.utilities import print_and_log
-#from server_common.ioc_data_source import IocDataSource
-#from server_common.mysql_abstraction_layer import SQLAbstraction
+
 
 # SettingPVConfig is a data type to store information about the PVs used to set parameters in the LSi driver.
 # convert_from_pv is a function which takes in the raw PV value and returns it in a form which can be accepted by the driver.

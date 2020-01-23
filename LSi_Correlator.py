@@ -26,7 +26,6 @@ from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
-
 from PVConfig import get_pv_configs
 
 def _error_handler(func):
@@ -40,43 +39,6 @@ def _error_handler(func):
 
 
 THREADPOOL = ThreadPoolExecutor()
-
-
-# SettingPVConfig is a data type to store information about the PVs used to set parameters in the LSi driver.
-# convert_from_pv is a function which takes in the raw PV value and returns it in a form which can be accepted by the driver.
-# convert_to_pv is a function which takes in the locally held PV value and returns a form which can be sent to the PV.
-# set_on_device is the function in the LSICorrelator class which writes the requested setting.
-SettingPVConfig = namedtuple("SettingPVConfig", ["convert_from_pv", "convert_to_pv", "set_on_device"])
-
-
-def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
-    """
-    Takes the value of the enum from the PV and returns the LSI_Param associated with this value
-
-    Args:
-        enum_class (Enum): The LSI_Param Enum containing the device parameters
-        pv_value (int): The enumerated value from the PV
-    """
-    return [enum for enum in enum_class][pv_value]
-
-
-def convert_lsi_enum_to_pv_value(enum_class, current_state):
-    """
-    Takes a driver parameter and returns its associated enum value for the PV
-
-    Args:
-        enum_class (Enum): The LSI_Param Enum containing the device parameters
-        current_state: The Enum member to be looked up and written to the PV
-    """
-
-    return [enum for enum in enum_class].index(current_state)
-
-
-def do_nothing(value):
-    """
-    No-op for outputs which do not need modifying
-    """
-    return value
 
 
 class LSiCorrelatorDriver(Driver):
@@ -96,39 +58,6 @@ class LSiCorrelatorDriver(Driver):
         super(LSiCorrelatorDriver, self).__init__()
 
         self.device = LSICorrelator(host, firmware_revision)
-
-        self.SettingPVs = {
-            PvNames.CORRELATIONTYPE: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.CorrelationType),
-                                                     convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.CorrelationType),
-                                                     set_on_device=self.device.setCorrelationType),
-
-            PvNames.NORMALIZATION: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.Normalization),
-                                                   convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.Normalization),
-                                                   set_on_device=self.device.setNormalization),
-
-            PvNames.MEASUREMENTDURATION: SettingPVConfig(convert_from_pv=round, convert_to_pv=do_nothing,
-                                                         set_on_device=self.device.setMeasurementDuration),
-
-            PvNames.SWAPCHANNELS: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.SwapChannels),
-                                                  convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.SwapChannels),
-                                                  set_on_device=self.device.setSwapChannels),
-
-            PvNames.SAMPLINGTIMEMULTIT: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.SamplingTimeMultiT),
-                                                        convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.SamplingTimeMultiT),
-                                                        set_on_device=self.device.setSamplingTimeMultiT),
-
-            PvNames.TRANSFERRATE: SettingPVConfig(convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.TransferRate),
-                                                  convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.TransferRate),
-                                                  set_on_device=self.device.setTransferRate),
-
-            PvNames.OVERLOADLIMIT: SettingPVConfig(convert_from_pv=round, convert_to_pv=do_nothing,
-                                                   set_on_device=self.device.setOverloadLimit),
-
-            PvNames.OVERLOADINTERVAL: SettingPVConfig(convert_from_pv=round, convert_to_pv=do_nothing,
-                                                      set_on_device=self.device.setOverloadTimeInterval),
-
-            PvNames.ERRORMSG: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing)
-        }
 
         self.SettingPVs = get_pv_configs(self.device)
 
