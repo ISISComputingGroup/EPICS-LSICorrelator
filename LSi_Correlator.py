@@ -44,6 +44,7 @@ THREADPOOL = ThreadPoolExecutor()
 # set_on_device is the function in the LSICorrelator class which writes the requested setting.
 SettingPVConfig = namedtuple("SettingPVConfig", ["sanitise", "set_on_device"])
 
+
 class LSiCorrelatorDriver(Driver):
     """
     A driver for the LSi Correlator
@@ -180,19 +181,8 @@ class LSiCorrelatorDriver(Driver):
         Args:
             value (float): The duration of the measurement in seconds
         """
-        set_on_device = self.get_device_setting_function(reason)
-        set_on_device(value)
-
-    def apply_setting(self, pv, value):
-        """
-        Updates a setting PV with value.
-
-        Args:
-            reason (string): The name of the PV to update
-            value : The new value of the PV
-        """
-
-        pass
+        device_setter = self.get_device_setting_function(reason)
+        device_setter(value)
 
     def take_data(self, number_of_repetitions):
         pass
@@ -272,9 +262,6 @@ def main():
     serve_forever(
         args.pv_prefix,
     )
-
-    #ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
-    #ioc_data_source.insert_ioc_start("LSI", os.getpid(), sys.argv[0], STATIC_PV_DATABASE, "TE:NDW1836:LSI:")
 
 
 if __name__ == "__main__":
