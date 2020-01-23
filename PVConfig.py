@@ -43,6 +43,18 @@ def do_nothing(value):
     return value
 
 
+def check_can_write_to_file(filepath):
+    """
+    Attempts to open the given file to write to
+
+    Args:
+        filepath (str): The location of the file to write to
+    """
+
+    with open(filepath, 'w') as f:
+        f.write('')
+
+
 def get_pv_configs(device):
     """
     Returns a dictionary of PVConfigs which define how the data is handled when PVs get or set
@@ -81,7 +93,9 @@ def get_pv_configs(device):
         PvNames.OVERLOADINTERVAL: SettingPVConfig(convert_from_pv=round, convert_to_pv=do_nothing,
                                                   set_on_device=device.setOverloadTimeInterval),
 
-        PvNames.ERRORMSG: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing)
+        PvNames.ERRORMSG: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+
+        PvNames.FILEPATH: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=check_can_write_to_file)
     }
 
     for pv in STATIC_PV_DATABASE.keys():
