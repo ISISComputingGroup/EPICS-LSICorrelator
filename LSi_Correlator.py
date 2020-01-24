@@ -64,7 +64,7 @@ class LSiCorrelatorDriver(Driver):
         self.PVValues = {
             PvNames.CORRELATIONTYPE: LSI_Param.CorrelationType.AUTO,
             PvNames.NORMALIZATION: LSI_Param.Normalization.COMPENSATED,
-            PvNames.MEASUREMENTDURATION: 300,
+            PvNames.MEASUREMENTDURATION: 10,
             PvNames.SWAPCHANNELS: LSI_Param.SwapChannels.ChA_ChB,
             PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns200,
             PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
@@ -72,11 +72,13 @@ class LSiCorrelatorDriver(Driver):
             PvNames.OVERLOADINTERVAL: 400,
             PvNames.ERRORMSG: "",
             PvNames.TAKEDATA: 0,
-            PvNames.REPETITIONS: 1,
+            PvNames.REPETITIONS: 2,
             PvNames.CURRENT_REPEAT: 0,
             PvNames.CORRELATION_FUNCTION: [],
             PvNames.LAGS: [],
-            PvNames.FILEPATH: ""
+            PvNames.FILEPATH: "",
+            PvNames.CONNECTED: False,
+            PvNames.RUNNING: False
         }
 
         for pv, preset in self.PVValues.items():
@@ -86,8 +88,34 @@ class LSiCorrelatorDriver(Driver):
 
         self.updatePVs()
 
-        self._corr = []
-        self._lags = []
+        THREADPOOL.submit(self.check_if_connected)
+
+    def check_if_connected(self):
+        """ Updates the CONNECTED PV with the current connection status """
+        while True:
+            self.set_pv_value(PvNames.CONNECTED, self.device.isConnected())
+            sleep(1.0)
+
+    def get_pv_value(self, reason):
+        """
+        Helper function returns the value of a PV held in this driver
+
+        Args:
+            reason (str): The name of the PV to get the value of
+        """
+        return self.PVValues[reason]
+
+    def set_pv_value(self, reason, value):
+        """
+        Helper function to update the value of a PV held in this driver
+
+        Args:
+            reason (str): The name of the PV to set
+            value: The new value for the PV
+        """
+        self.PVValues[reason] = value
+
+        self.setParam(reason, value)
 
     def update_error_pv(self, error_message):
         """
@@ -109,9 +137,9 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
 
         if reason == PvNames.TAKEDATA:
-            THREADPOOL.submit(self.take_data())
+            THREADPOOL.submit(self.take_data)
 
-        elif reason in STATIC_PV_DATABASE.keys():
+        if reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
         else:
             print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
@@ -130,7 +158,7 @@ class LSiCorrelatorDriver(Driver):
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
         try:
-            PV_value = self.PVValues[reason]
+            PV_value = self.get_pv_value(reason)
 
             PV_value = self.SettingPVs[reason].convert_to_pv(PV_value)
 
@@ -148,16 +176,12 @@ class LSiCorrelatorDriver(Driver):
             reason (str): PV to read
             value: The value to set
         """
-
-        print_and_log(value)
-        print_and_log(self.SettingPVs[reason].convert_from_pv(value))
-
         try:
             sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
             print_and_log("setting {} to {}".format(reason, sanitised_value))
             self.SettingPVs[reason].set_on_device(sanitised_value)
 
-            self.PVValues[reason] = sanitised_value
+            self.set_pv_value(reason, sanitised_value)
         except ValueError as err:
             print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
             self.update_error_pv("{}".format(err))
@@ -184,7 +208,7 @@ class LSiCorrelatorDriver(Driver):
         self.device.configure()
 
         for repeat in range(self.PVValues[PvNames.REPETITIONS]):
-            self.PVValues[PvNames.CURRENT_REPEAT] = repeat
+            self.set_pv_value(PvNames.CURRENT_REPEAT, repeat)
 
             self.device.start()
 
@@ -198,8 +222,8 @@ class LSiCorrelatorDriver(Driver):
             Lags = Lags[np.isfinite(Corr)]
             Corr = Corr[np.isfinite(Corr)]
 
-            self.PVValues[PvNames.CORRELATION_FUNCTION] = Corr
-            self.PVValues[PvNames.LAGS] = Lags
+            self.set_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
+            self.set_pv_value(PvNames.LAGS, Lags)
 
             self.save_data(Corr, Lags)
 
@@ -213,7 +237,7 @@ class LSiCorrelatorDriver(Driver):
 
         filename_components = filename.split('.')
 
-        appended_filename = "{}_{}".format(filename_components[0], self.PVValues[PvNames.CURRENT_REPEAT])
+        appended_filename = "{}_{}".format(filename_components[0], self.get_pv_value(PvNames.CURRENT_REPEAT))
         filename_components[0] = appended_filename
 
         return '.'.join(filename_components)
@@ -227,7 +251,7 @@ class LSiCorrelatorDriver(Driver):
             time_lags (float array): The time lags
         """
 
-        filename = self.add_repetition_to_filename(self.PVValues[PvNames.FILEPATH])
+        filename = self.add_repetition_to_filename(self.get_pv_value(PvNames.FILEPATH))
 
         with open(filename, 'w') as f:
             data = np.vstack((time_lags, correlation)).T

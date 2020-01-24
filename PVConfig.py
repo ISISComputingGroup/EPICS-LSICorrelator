@@ -42,7 +42,6 @@ def do_nothing(value):
     """
     return value
 
-
 def check_can_write_to_file(filepath):
     """
     Attempts to open the given file to write to
@@ -87,25 +86,49 @@ def get_pv_configs(device):
                                               convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.TransferRate),
                                               set_on_device=device.setTransferRate),
 
-        PvNames.OVERLOADLIMIT: SettingPVConfig(convert_from_pv=round, convert_to_pv=do_nothing,
+        PvNames.OVERLOADLIMIT: SettingPVConfig(convert_from_pv=round,
+                                               convert_to_pv=do_nothing,
                                                set_on_device=device.setOverloadLimit),
 
-        PvNames.OVERLOADINTERVAL: SettingPVConfig(convert_from_pv=round, convert_to_pv=do_nothing,
+        PvNames.OVERLOADINTERVAL: SettingPVConfig(convert_from_pv=round,
+                                                  convert_to_pv=do_nothing,
                                                   set_on_device=device.setOverloadTimeInterval),
 
-        PvNames.ERRORMSG: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+        PvNames.ERRORMSG: SettingPVConfig(convert_from_pv=do_nothing,
+                                          convert_to_pv=do_nothing,
+                                          set_on_device=do_nothing),
 
-        PvNames.FILEPATH: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=check_can_write_to_file),
+        PvNames.FILEPATH: SettingPVConfig(convert_from_pv=do_nothing,
+                                          convert_to_pv=do_nothing,
+                                          set_on_device=check_can_write_to_file),
 
-        PvNames.TAKEDATA: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+        PvNames.TAKEDATA: SettingPVConfig(convert_from_pv=do_nothing,
+                                          convert_to_pv=do_nothing,
+                                          set_on_device=do_nothing),
 
-        PvNames.CORRELATION_FUNCTION: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+        PvNames.CORRELATION_FUNCTION: SettingPVConfig(convert_from_pv=do_nothing,
+                                                      convert_to_pv=do_nothing,
+                                                      set_on_device=do_nothing),
 
-        PvNames.LAGS: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+        PvNames.LAGS: SettingPVConfig(convert_from_pv=do_nothing,
+                                      convert_to_pv=do_nothing,
+                                      set_on_device=do_nothing),
 
-        PvNames.REPETITIONS: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+        PvNames.REPETITIONS: SettingPVConfig(convert_from_pv=do_nothing,
+                                             convert_to_pv=do_nothing,
+                                             set_on_device=do_nothing),
 
-        PvNames.CURRENT_REPEAT: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing)
+        PvNames.CURRENT_REPEAT: SettingPVConfig(convert_from_pv=do_nothing,
+                                                convert_to_pv=do_nothing,
+                                                set_on_device=do_nothing),
+
+        PvNames.CONNECTED: SettingPVConfig(convert_from_pv=do_nothing,
+                                           convert_to_pv=do_nothing,
+                                           set_on_device=do_nothing),
+
+        PvNames.RUNNING: SettingPVConfig(convert_from_pv=do_nothing,
+                                         convert_to_pv=do_nothing,
+                                         set_on_device=do_nothing)
     }
 
     for pv in STATIC_PV_DATABASE.keys():
