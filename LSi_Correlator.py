@@ -64,7 +64,7 @@ class LSiCorrelatorDriver(Driver):
         self.PVValues = {
             PvNames.CORRELATIONTYPE: LSI_Param.CorrelationType.AUTO,
             PvNames.NORMALIZATION: LSI_Param.Normalization.COMPENSATED,
-            PvNames.MEASUREMENTDURATION: 10,
+            PvNames.MEASUREMENTDURATION: 300,
             PvNames.SWAPCHANNELS: LSI_Param.SwapChannels.ChA_ChB,
             PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns200,
             PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
@@ -214,7 +214,10 @@ class LSiCorrelatorDriver(Driver):
 
             while self.device.MeasurementOn():
                 sleep(0.5)
+                self.set_pv_value(PvNames.RUNNING, True)
                 self.device.update()
+
+            self.set_pv_value(PvNames.RUNNING, False)
 
             Corr = np.asarray(self.device.Correlation)
             Lags = np.asarray(self.device.Lags)
