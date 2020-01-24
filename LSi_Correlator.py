@@ -71,7 +71,12 @@ class LSiCorrelatorDriver(Driver):
             PvNames.OVERLOADLIMIT: 20,
             PvNames.OVERLOADINTERVAL: 400,
             PvNames.ERRORMSG: "",
-            PvNames.TAKEDATA: 0
+            PvNames.TAKEDATA: 0,
+            PvNames.REPETITIONS: 1,
+            PvNames.CURRENT_REPEAT: 0,
+            PvNames.CORRELATION_FUNCTION: [],
+            PvNames.LAGS: [],
+            PvNames.FILEPATH: ""
         }
 
         for pv, preset in self.PVValues.items():
@@ -104,7 +109,8 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
 
         if reason == PvNames.TAKEDATA:
-            self.take_data(1)
+            THREADPOOL.submit(self.take_data())
+
         elif reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
         else:
@@ -146,9 +152,6 @@ class LSiCorrelatorDriver(Driver):
         print_and_log(value)
         print_and_log(self.SettingPVs[reason].convert_from_pv(value))
 
-        if reason == PvNames.TAKEDATA:
-            self.take_data(1)
-
         try:
             sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
             print_and_log("setting {} to {}".format(reason, sanitised_value))
@@ -171,21 +174,65 @@ class LSiCorrelatorDriver(Driver):
         device_setter(value)
 
     @_error_handler
-    def take_data(self, number_of_repetitions):
+    def take_data(self):
+        """
+        Sends settings parameters to the LSi driver and takes data from the LSi Correlator with the given number of repetitions.
+
+        Args:
+            number_of_repetitions (int): The number of repetitions to perform.
+        """
         self.device.configure()
-        self.device.start()
 
-        while self.device.MeasurementOn():
-            sleep(0.5)
-            self.device.update()
-        
-        Corr = np.asarray(self.device.Correlation)
-        Lags = np.asarray(self.device.Lags)
-        Lags = Lags[np.isfinite(Corr)]
-        Corr = Corr[np.isfinite(Corr)]
+        for repeat in range(self.PVValues[PvNames.REPETITIONS]):
+            self.PVValues[PvNames.CURRENT_REPEAT] = repeat
 
-        self._corr = Corr
-        self._lags = Lags
+            self.device.start()
+
+            while self.device.MeasurementOn():
+                sleep(0.5)
+                self.device.update()
+
+            Corr = np.asarray(self.device.Correlation)
+            Lags = np.asarray(self.device.Lags)
+
+            Lags = Lags[np.isfinite(Corr)]
+            Corr = Corr[np.isfinite(Corr)]
+
+            self.PVValues[PvNames.CORRELATION_FUNCTION] = Corr
+            self.PVValues[PvNames.LAGS] = Lags
+
+            self.save_data(Corr, Lags)
+
+    def add_repetition_to_filename(self, filename):
+        """
+        Adds the current repetition number to the supplied filename
+
+        Args:
+            filename (str): The filename
+        """
+
+        filename_components = filename.split('.')
+
+        appended_filename = "{}_{}".format(filename_components[0], self.PVValues[PvNames.CURRENT_REPEAT])
+        filename_components[0] = appended_filename
+
+        return '.'.join(filename_components)
+
+    def save_data(self, correlation, time_lags):
+        """
+        Write the correlation function and time lags to file.
+
+        Args:
+            correlation (float array): The correlation function
+            time_lags (float array): The time lags
+        """
+
+        filename = self.add_repetition_to_filename(self.PVValues[PvNames.FILEPATH])
+
+        with open(filename, 'w') as f:
+            data = np.vstack((time_lags, correlation)).T
+
+            np.savetxt(f, data, delimiter=',', header='Time Lags,Correlation Function', fmt='%1.4e')
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
         """

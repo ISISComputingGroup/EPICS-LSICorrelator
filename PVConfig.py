@@ -95,7 +95,17 @@ def get_pv_configs(device):
 
         PvNames.ERRORMSG: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
 
-        PvNames.FILEPATH: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=check_can_write_to_file)
+        PvNames.FILEPATH: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=check_can_write_to_file),
+
+        PvNames.TAKEDATA: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+
+        PvNames.CORRELATION_FUNCTION: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+
+        PvNames.LAGS: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+
+        PvNames.REPETITIONS: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing),
+
+        PvNames.CURRENT_REPEAT: SettingPVConfig(convert_from_pv=do_nothing, convert_to_pv=do_nothing, set_on_device=do_nothing)
     }
 
     for pv in STATIC_PV_DATABASE.keys():
