@@ -6,11 +6,9 @@ from LSI import LSI_Param
 from pvdb import STATIC_PV_DATABASE, PvNames
 
 
-# SettingPVConfig is a data type to store information about the PVs used to set parameters in the LSi driver.
-# convert_from_pv is a function which takes in the raw PV value and returns it in a form which can be accepted by the driver.
-# convert_to_pv is a function which takes in the locally held PV value and returns a form which can be sent to the PV.
-# set_on_device is the function in the LSICorrelator class which writes the requested setting.
-SettingPVConfig = namedtuple("SettingPVConfig", ["convert_from_pv", "convert_to_pv", "set_on_device"])
+
+
+
 
 
 def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
@@ -42,6 +40,7 @@ def do_nothing(value):
     """
     return value
 
+
 def check_can_write_to_file(filepath):
     """
     Attempts to open the given file to write to
@@ -52,6 +51,19 @@ def check_can_write_to_file(filepath):
 
     with open(filepath, 'w') as f:
         f.write('')
+
+
+# SettingPVConfig is a data type to store information about the PVs used to set parameters in the LSi driver.
+# convert_from_pv is a function which takes in the raw PV value and returns it in a form which can be accepted by the driver.
+# convert_to_pv is a function which takes in the locally held PV value and returns a form which can be sent to the PV.
+# set_on_device is the function in the LSICorrelator class which writes the requested setting.
+SettingPVConfig = namedtuple("SettingPVConfig", ["convert_from_pv", "convert_to_pv", "set_on_device"])
+
+# A 'BasicPV' does not require any conversions/treatments when reading or writing to the PV.
+# The data is only held in this driver not in LSI code, so does not require a device setter.
+BasicPVConfig = SettingPVConfig(convert_from_pv=do_nothing,
+                                convert_to_pv=do_nothing,
+                                set_on_device=do_nothing)
 
 
 def get_pv_configs(device):
@@ -94,41 +106,24 @@ def get_pv_configs(device):
                                                   convert_to_pv=do_nothing,
                                                   set_on_device=device.setOverloadTimeInterval),
 
-        PvNames.ERRORMSG: SettingPVConfig(convert_from_pv=do_nothing,
-                                          convert_to_pv=do_nothing,
-                                          set_on_device=do_nothing),
+        PvNames.ERRORMSG: BasicPVConfig,
 
         PvNames.FILEPATH: SettingPVConfig(convert_from_pv=do_nothing,
                                           convert_to_pv=do_nothing,
                                           set_on_device=check_can_write_to_file),
 
-        PvNames.TAKEDATA: SettingPVConfig(convert_from_pv=do_nothing,
-                                          convert_to_pv=do_nothing,
-                                          set_on_device=do_nothing),
-
-        PvNames.CORRELATION_FUNCTION: SettingPVConfig(convert_from_pv=do_nothing,
-                                                      convert_to_pv=do_nothing,
-                                                      set_on_device=do_nothing),
-
-        PvNames.LAGS: SettingPVConfig(convert_from_pv=do_nothing,
-                                      convert_to_pv=do_nothing,
-                                      set_on_device=do_nothing),
-
-        PvNames.REPETITIONS: SettingPVConfig(convert_from_pv=do_nothing,
-                                             convert_to_pv=do_nothing,
-                                             set_on_device=do_nothing),
-
-        PvNames.CURRENT_REPEAT: SettingPVConfig(convert_from_pv=do_nothing,
-                                                convert_to_pv=do_nothing,
-                                                set_on_device=do_nothing),
-
-        PvNames.CONNECTED: SettingPVConfig(convert_from_pv=do_nothing,
-                                           convert_to_pv=do_nothing,
-                                           set_on_device=do_nothing),
-
-        PvNames.RUNNING: SettingPVConfig(convert_from_pv=do_nothing,
-                                         convert_to_pv=do_nothing,
-                                         set_on_device=do_nothing)
+        PvNames.TAKEDATA: BasicPVConfig,
+        PvNames.CORRELATION_FUNCTION: BasicPVConfig,
+        PvNames.LAGS: BasicPVConfig,
+        PvNames.REPETITIONS: BasicPVConfig,
+        PvNames.CURRENT_REPEAT: BasicPVConfig,
+        PvNames.CONNECTED: BasicPVConfig,
+        PvNames.RUNNING: BasicPVConfig,
+        PvNames.SCATTERING_ANGLE: BasicPVConfig,
+        PvNames.SAMPLE_TEMP: BasicPVConfig,
+        PvNames.SOLVENT_VISCOSITY: BasicPVConfig,
+        PvNames.SOLVENT_REFRACTIVE_INDEX: BasicPVConfig,
+        PvNames.LASER_WAVELENGTH: BasicPVConfig
     }
 
     for pv in STATIC_PV_DATABASE.keys():
