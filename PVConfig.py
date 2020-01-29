@@ -134,6 +134,8 @@ def get_pv_configs(device):
         PvNames.TAKEDATA: BasicPVConfig,
         PvNames.CORRELATION_FUNCTION: BasicPVConfig,
         PvNames.LAGS: BasicPVConfig,
+        PvNames.TRACEA: BasicPVConfig,
+        PvNames.TRACEB: BasicPVConfig,
         PvNames.REPETITIONS: BasicPVConfig,
         PvNames.CURRENT_REPEAT: BasicPVConfig,
         PvNames.CONNECTED: BasicPVConfig,

@@ -35,6 +35,8 @@ class PvNames(object):
     TAKEDATA = "TAKEDATA"
     CORRELATION_FUNCTION = "CORRELATION_FUNCTION"
     LAGS = "LAGS"
+    TRACEA = "TRACEA"
+    TRACEB = "TRACEB"
     REPETITIONS = "REPETITIONS"
     CURRENT_REPEAT = "CURRENT_REPETITION"
     RUNNING = "RUNNING"
@@ -61,6 +63,8 @@ STATIC_PV_DATABASE = {
     PvNames.TAKEDATA: {'type': 'int'},
     PvNames.CORRELATION_FUNCTION: {'type': 'float', 'count': 400},
     PvNames.LAGS: {'type': 'float', 'count': 400},
+    PvNames.TRACEA: {'type': 'float', 'count': 400},
+    PvNames.TRACEB: {'type': 'float', 'count': 400},
     PvNames.REPETITIONS: FLOAT_AS_INT_PV_FIELDS,
     PvNames.CURRENT_REPEAT: FLOAT_AS_INT_PV_FIELDS,
     PvNames.CONNECTED: PARAM_FIELDS_BINARY,

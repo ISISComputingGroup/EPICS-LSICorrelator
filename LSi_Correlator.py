@@ -76,6 +76,8 @@ class LSiCorrelatorDriver(Driver):
             PvNames.CURRENT_REPEAT: 0,
             PvNames.CORRELATION_FUNCTION: [],
             PvNames.LAGS: [],
+            PvNames.TRACEA: [],
+            PvNames.TRACEB: [],
             PvNames.FILENAME: "",
             PvNames.FILEPATH: "",
             PvNames.CONNECTED: False,
@@ -237,6 +239,9 @@ class LSiCorrelatorDriver(Driver):
 
             self.set_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
             self.set_pv_value(PvNames.LAGS, Lags)
+
+            self.set_pv_value(PvNames.TRACEA, np.asarray(self.device.TraceChA))
+            self.set_pv_value(PvNames.TRACEB, np.asarray(self.device.TraceChB))
 
             self.save_data(Corr, Lags)
 
