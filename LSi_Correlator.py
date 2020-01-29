@@ -66,7 +66,7 @@ class LSiCorrelatorDriver(Driver):
             PvNames.NORMALIZATION: LSI_Param.Normalization.COMPENSATED,
             PvNames.MEASUREMENTDURATION: 300,
             PvNames.SWAPCHANNELS: LSI_Param.SwapChannels.ChA_ChB,
-            PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns200,
+            PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns12_5,
             PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
             PvNames.OVERLOADLIMIT: 20,
             PvNames.OVERLOADINTERVAL: 400,
@@ -76,9 +76,15 @@ class LSiCorrelatorDriver(Driver):
             PvNames.CURRENT_REPEAT: 0,
             PvNames.CORRELATION_FUNCTION: [],
             PvNames.LAGS: [],
+            PvNames.FILENAME: "",
             PvNames.FILEPATH: "",
             PvNames.CONNECTED: False,
-            PvNames.RUNNING: False
+            PvNames.RUNNING: False,
+            PvNames.SCATTERING_ANGLE: 2.2,
+            PvNames.SAMPLE_TEMP: 300,
+            PvNames.SOLVENT_VISCOSITY: 1100,
+            PvNames.SOLVENT_REFRACTIVE_INDEX: 1.1,
+            PvNames.LASER_WAVELENGTH: 440
         }
 
         for pv, preset in self.PVValues.items():
@@ -103,6 +109,7 @@ class LSiCorrelatorDriver(Driver):
         Args:
             reason (str): The name of the PV to get the value of
         """
+        # return self.getParam(reason)
         return self.PVValues[reason]
 
     def set_pv_value(self, reason, value):
@@ -115,7 +122,9 @@ class LSiCorrelatorDriver(Driver):
         """
         self.PVValues[reason] = value
 
-        self.setParam(reason, value)
+        new_pv_value = self.SettingPVs[reason].convert_to_pv(value)
+
+        self.setParam(reason, new_pv_value)
 
     def update_error_pv(self, error_message):
         """
@@ -163,6 +172,7 @@ class LSiCorrelatorDriver(Driver):
             PV_value = self.SettingPVs[reason].convert_to_pv(PV_value)
 
             return PV_value
+            # return self.getParam(reason)
 
         except KeyError:
             print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
@@ -230,20 +240,19 @@ class LSiCorrelatorDriver(Driver):
 
             self.save_data(Corr, Lags)
 
-    def add_repetition_to_filename(self, filename):
+    def add_repetition_to_filename(self):
         """
-        Adds the current repetition number to the supplied filename
+        Adds the current repetition number to the supplied filepath/filename
 
         Args:
             filename (str): The filename
         """
 
-        filename_components = filename.split('.')
+        filepath = self.get_pv_value(PvNames.FILEPATH)
+        filename = self.get_pv_value(PvNames.FILENAME)
+        repeat = self.get_pv_value(PvNames.CURRENT_REPEAT)
 
-        appended_filename = "{}_{}".format(filename_components[0], self.get_pv_value(PvNames.CURRENT_REPEAT))
-        filename_components[0] = appended_filename
-
-        return '.'.join(filename_components)
+        return "{filepath}/{filename}_rep{current_repeat}".format(filepath=filepath, filename=filename, current_repeat=repeat)
 
     def save_data(self, correlation, time_lags):
         """
@@ -254,7 +263,7 @@ class LSiCorrelatorDriver(Driver):
             time_lags (float array): The time lags
         """
 
-        filename = self.add_repetition_to_filename(self.get_pv_value(PvNames.FILEPATH))
+        filename = self.add_repetition_to_filename()
 
         with open(filename, 'w') as f:
             data = np.vstack((time_lags, correlation)).T

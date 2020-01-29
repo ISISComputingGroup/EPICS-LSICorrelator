@@ -31,6 +31,7 @@ class PvNames(object):
     OVERLOADINTERVAL = "OVERLOADINTERVAL"
     ERRORMSG = "ERRORMSG"
     FILEPATH = "FILEPATH"
+    FILENAME = "FILENAME"
     TAKEDATA = "TAKEDATA"
     CORRELATION_FUNCTION = "CORRELATION_FUNCTION"
     LAGS = "LAGS"
@@ -52,10 +53,11 @@ STATIC_PV_DATABASE = {
     PvNames.SWAPCHANNELS: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SwapChannels]},
     PvNames.SAMPLINGTIMEMULTIT: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SamplingTimeMultiT]},
     PvNames.TRANSFERRATE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.TransferRate]},
-    PvNames.OVERLOADLIMIT: FLOAT_AS_INT_PV_FIELDS,
+    PvNames.OVERLOADLIMIT: {'type': 'float', 'prec': 0, 'value': 0.0, 'unit': 'Mcps'},
     PvNames.OVERLOADINTERVAL: FLOAT_AS_INT_PV_FIELDS,
     PvNames.ERRORMSG: {'type': 'char', 'count': 400},
     PvNames.FILEPATH: {'type': 'char', 'count': 400},
+    PvNames.FILENAME: {'type': 'char', 'count': 400},
     PvNames.TAKEDATA: {'type': 'int'},
     PvNames.CORRELATION_FUNCTION: {'type': 'float', 'count': 400},
     PvNames.LAGS: {'type': 'float', 'count': 400},

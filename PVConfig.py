@@ -1,14 +1,28 @@
 from collections import namedtuple
-from enum import Enum
 from functools import partial
+import os
 
+from genie_python import genie as g
 from LSI import LSI_Param
 from pvdb import STATIC_PV_DATABASE, PvNames
 
+g.set_instrument(None)
 
 
+def get_default_filename():
+    """ Returns a default filename from the current run number and title """
+    g.set_instrument(None)
+    return "{run_number}_{title}".format(run_number=g.get_runnumber(), title=g.get_title())
 
 
+def check_filename_valid(filename):
+    """ Removes non-ascii and other characters which prevent using the supplied filename """
+    if filename == "":
+        filename = get_default_filename()
+
+    # Remove anything other than alphanumerics and dashes/underscores
+    parsed_filename = [char for char in filename if char.isalnum() or char in '-_']
+    return ''.join(parsed_filename)
 
 
 def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
@@ -59,6 +73,7 @@ def check_can_write_to_file(filepath):
 # set_on_device is the function in the LSICorrelator class which writes the requested setting.
 SettingPVConfig = namedtuple("SettingPVConfig", ["convert_from_pv", "convert_to_pv", "set_on_device"])
 
+
 # A 'BasicPV' does not require any conversions/treatments when reading or writing to the PV.
 # The data is only held in this driver not in LSI code, so does not require a device setter.
 BasicPVConfig = SettingPVConfig(convert_from_pv=do_nothing,
@@ -108,9 +123,13 @@ def get_pv_configs(device):
 
         PvNames.ERRORMSG: BasicPVConfig,
 
+        PvNames.FILENAME: SettingPVConfig(convert_from_pv=check_filename_valid,
+                                          convert_to_pv=do_nothing,
+                                          set_on_device=do_nothing),
+
         PvNames.FILEPATH: SettingPVConfig(convert_from_pv=do_nothing,
                                           convert_to_pv=do_nothing,
-                                          set_on_device=check_can_write_to_file),
+                                          set_on_device=os.path.isdir),
 
         PvNames.TAKEDATA: BasicPVConfig,
         PvNames.CORRELATION_FUNCTION: BasicPVConfig,
