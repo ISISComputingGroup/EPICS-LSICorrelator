@@ -81,14 +81,17 @@ STATIC_PV_DATABASE = {
 }
 
 
-def add_egu_fields(pvdb: Dict[str, Dict]):
+def compile_EGU_field_pvs(static_pvs: Dict[str, Dict]):
     """
     Adds an EGU field to all pvs
     """
     EGU_pvs = {}
-    for pv_name, pv_definition in pvdb.items():
+    for pv_name, pv_definition in static_pvs.items():
         if 'unit' in pv_definition:
             unit = pv_definition['unit']
             EGU_pvs.update({"{PV_name}.EGU".format(PV_name=pv_name): get_egu_field_type(unit)})
 
-    pvdb.update(EGU_pvs)
+    return EGU_pvs
+
+
+EGU_PV_DATABASE = compile_EGU_field_pvs(STATIC_PV_DATABASE)
