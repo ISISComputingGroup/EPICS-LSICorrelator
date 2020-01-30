@@ -23,10 +23,6 @@ ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStrings[:16]}
 ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
 EGU_FIELD = {'type': 'string'}
 
-def get_egu_field_type(init_value):
-    """ Returns an EGU PV definition containing the value provided """
-    return {'type': 'string', 'value': init_value}
-
 
 class PvNames(object):
     CORRELATIONTYPE = "CORRELATIONTYPE"
@@ -82,30 +78,6 @@ STATIC_PV_DATABASE = {
     PvNames.LASER_WAVELENGTH: {'type': 'float', 'unit': 'nm'}
 }
 
-
-def compile_EGU_field_pvs(static_pvs: Dict[str, Dict]):
-    """
-    Adds an EGU field to all pvs
-    """
-    EGU_pvs = {}
-    for pv_name, pv_definition in static_pvs.items():
-        if 'unit' in pv_definition:
-            unit = pv_definition['unit']
-            EGU_pvs.update({"{PV_name}.EGU".format(PV_name=pv_name): get_egu_field_type(unit)})
-
-    return EGU_pvs
-
-
-def compile_array_pv_fields(static_pvs: Dict[str, Dict]):
-    """ Creates NORD and NELM fields for array PVs """
-    array_fields = {}
-    for pv_name, pv_definition in static_pvs.items():
-        if 'count' in pv_definition:
-            array_fields.update({"{pv_name}.NORD".format(pv_name=pv_name): {'type': 'int', 'value': 0}})
-            array_fields.update({"{pv_name}.NELM".format(pv_name=pv_name): {'type': 'int', 'value': pv_definition['count']}})
-
-    return array_fields
-
 def add_fields_to_pvs(static_pvs: Dict[str, Dict]):
     """ Creates PVs to allow fields to be read """
     field_database = {}
@@ -123,5 +95,4 @@ def add_fields_to_pvs(static_pvs: Dict[str, Dict]):
 
     return field_database
 
-#EGU_PV_DATABASE = compile_EGU_field_pvs(STATIC_PV_DATABASE)
 FIELDS_DATABASE = add_fields_to_pvs(STATIC_PV_DATABASE)
