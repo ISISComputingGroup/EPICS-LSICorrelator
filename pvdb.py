@@ -63,9 +63,9 @@ STATIC_PV_DATABASE = {
     PvNames.TRANSFERRATE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.TransferRate]},
     PvNames.OVERLOADLIMIT: {'type': 'float', 'prec': 0, 'value': 0.0, 'unit': 'Mcps'},
     PvNames.OVERLOADINTERVAL: FLOAT_AS_INT_PV_FIELDS,
-    PvNames.ERRORMSG: {'type': 'string'},
-    PvNames.FILEPATH: {'type': 'string'},
-    PvNames.FILENAME: {'type': 'string'},
+    PvNames.ERRORMSG: CHAR_PV_FIELDS,
+    PvNames.FILEPATH: CHAR_PV_FIELDS,
+    PvNames.FILENAME: CHAR_PV_FIELDS,
     PvNames.TAKEDATA: {'type': 'int'},
     PvNames.CORRELATION_FUNCTION: {'type': 'float', 'count': 400},
     PvNames.LAGS: {'type': 'float', 'count': 400},
@@ -94,4 +94,15 @@ def compile_EGU_field_pvs(static_pvs: Dict[str, Dict]):
     return EGU_pvs
 
 
+def compile_array_pv_fields(static_pvs: Dict[str, Dict]):
+    """ Creates NORD and NELM fields for array PVs """
+    array_fields = {}
+    for pv_name, pv_definition in static_pvs.items():
+        if 'count' in pv_definition:
+            array_fields.update({"{pv_name}.NORD".format(pv_name=pv_name): {'type': 'int', 'value': 0}})
+            array_fields.update({"{pv_name}.NELM".format(pv_name=pv_name): {'type': 'int', 'value': pv_definition['count']}})
+
+    return array_fields
+
 EGU_PV_DATABASE = compile_EGU_field_pvs(STATIC_PV_DATABASE)
+ARRAY_FIELDS_DATABASE = compile_array_pv_fields(STATIC_PV_DATABASE)

@@ -20,7 +20,7 @@ sys.path.insert(2, 'C:\\Instrument\\Apps\\EPICS\\ISIS\\inst_servers\\master\\')
 from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 
-from pvdb import STATIC_PV_DATABASE, PvNames, EGU_PV_DATABASE
+from pvdb import STATIC_PV_DATABASE, PvNames, EGU_PV_DATABASE, ARRAY_FIELDS_DATABASE
 from PVConfig import get_pv_configs
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
@@ -109,12 +109,12 @@ class LSiCorrelatorDriver(Driver):
         Args:
             reason (str): The name of the PV to get the value of
         """
-        # return self.getParam(reason)
-        if ".EGU" in reason:
-            pv_value = EGU_PV_DATABASE[reason]['value']
+        if reason in self.SettingPVs:
+            # Need to convert internal state to PV (e.g. enum number)
+            internal_pv_value = self.PVValues[reason]
+            pv_value = self.SettingPVs[reason].convert_to_pv(internal_pv_value)
         else:
-            pv_value = self.PVValues[reason]
-
+            pv_value = self.getParam(reason)
         return pv_value
 
     def set_pv_value(self, reason, value):
@@ -171,17 +171,12 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-
-        PV_value = self.get_pv_value(reason)
         try:
-            if reason in self.SettingPVs:
-                PV_value = self.SettingPVs[reason].convert_to_pv(PV_value)
-
-            return PV_value
-            # return self.getParam(reason)
-
+            PV_value = self.get_pv_value(reason)
         except KeyError:
             print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
+
+        return PV_value
 
     @_error_handler
     def update_pv_value(self, reason, value):
@@ -340,6 +335,7 @@ def serve_forever(pv_prefix):
 
     server.createPV("{}LSI:".format(pv_prefix), STATIC_PV_DATABASE)
     server.createPV("{}LSI:".format(pv_prefix), EGU_PV_DATABASE)
+    server.createPV("{}LSI:".format(pv_prefix), ARRAY_FIELDS_DATABASE)
 
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
