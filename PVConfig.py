@@ -142,7 +142,9 @@ def get_pv_configs(device):
         PvNames.SAMPLE_TEMP: BasicPVConfig,
         PvNames.SOLVENT_VISCOSITY: BasicPVConfig,
         PvNames.SOLVENT_REFRACTIVE_INDEX: BasicPVConfig,
-        PvNames.LASER_WAVELENGTH: BasicPVConfig
+        PvNames.LASER_WAVELENGTH: BasicPVConfig,
+        PvNames.SIM: BasicPVConfig,
+        PvNames.DISABLE: BasicPVConfig
     }
 
     for pv in STATIC_PV_DATABASE.keys():

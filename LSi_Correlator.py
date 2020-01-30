@@ -84,7 +84,9 @@ class LSiCorrelatorDriver(Driver):
             PvNames.SAMPLE_TEMP: 300,
             PvNames.SOLVENT_VISCOSITY: 1100,
             PvNames.SOLVENT_REFRACTIVE_INDEX: 1.1,
-            PvNames.LASER_WAVELENGTH: 440
+            PvNames.LASER_WAVELENGTH: 440,
+            PvNames.SIM: 0,
+            PvNames.DISABLE: 0
         }
 
         for pv, preset in self.PVValues.items():
@@ -180,7 +182,7 @@ class LSiCorrelatorDriver(Driver):
         if reason == PvNames.TAKEDATA:
             THREADPOOL.submit(self.take_data)
 
-        if reason in STATIC_PV_DATABASE.keys():
+        elif reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")

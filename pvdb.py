@@ -21,7 +21,7 @@ CHAR_PV_FIELDS = {'type': 'char', 'count': 400}
 # Truncate as enum can only contain 16 states
 ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStrings[:16]}
 ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
-EGU_FIELD = {'type': 'string'}
+STRING_FIELD = {'type': 'string'}
 
 
 class PvNames(object):
@@ -50,6 +50,8 @@ class PvNames(object):
     SOLVENT_VISCOSITY = "SOLVENT_VISCOSITY"
     SOLVENT_REFRACTIVE_INDEX = "SOLVENT_REFRACTIVE_INDEX"
     LASER_WAVELENGTH = "LASER_WAVELENGTH"
+    SIM = "SIM"
+    DISABLE = "DISABLE"
 
 
 STATIC_PV_DATABASE = {
@@ -75,7 +77,9 @@ STATIC_PV_DATABASE = {
     PvNames.SAMPLE_TEMP: {'type': 'float', 'unit': 'C'},
     PvNames.SOLVENT_VISCOSITY: {'type': 'float', 'unit': ''},
     PvNames.SOLVENT_REFRACTIVE_INDEX: {'type': 'float', 'unit': 'mPas'},
-    PvNames.LASER_WAVELENGTH: {'type': 'float', 'unit': 'nm'}
+    PvNames.LASER_WAVELENGTH: {'type': 'float', 'unit': 'nm'},
+    PvNames.SIM: PARAM_FIELDS_BINARY,
+    PvNames.DISABLE: PARAM_FIELDS_BINARY
 }
 
 def add_fields_to_pvs(static_pvs: Dict[str, Dict]):
@@ -94,5 +98,6 @@ def add_fields_to_pvs(static_pvs: Dict[str, Dict]):
             field_database.update({"{PV_name}.EGU".format(PV_name=pv_name): {'type': 'string', 'value': pv_definition['unit']}})
 
     return field_database
+
 
 FIELDS_DATABASE = add_fields_to_pvs(STATIC_PV_DATABASE)
