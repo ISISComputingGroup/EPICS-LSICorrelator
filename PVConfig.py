@@ -146,7 +146,8 @@ def get_pv_configs(device):
     }
 
     for pv in STATIC_PV_DATABASE.keys():
-        if pv not in SettingPVs:
+        # Ignore fields of PVs (contains a dot)
+        if '.' not in pv and pv not in SettingPVs:
             raise AttributeError("No config supplied for PV {}".format(pv))
 
     return SettingPVs

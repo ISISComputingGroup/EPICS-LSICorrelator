@@ -64,7 +64,7 @@ class LSiCorrelatorDriver(Driver):
         self.PVValues = {
             PvNames.CORRELATIONTYPE: LSI_Param.CorrelationType.AUTO,
             PvNames.NORMALIZATION: LSI_Param.Normalization.COMPENSATED,
-            PvNames.MEASUREMENTDURATION: 300,
+            PvNames.MEASUREMENTDURATION: 10,
             PvNames.SWAPCHANNELS: LSI_Param.SwapChannels.ChA_ChB,
             PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns200,
             PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
@@ -110,7 +110,13 @@ class LSiCorrelatorDriver(Driver):
             reason (str): The name of the PV to get the value of
         """
         # return self.getParam(reason)
-        return self.PVValues[reason]
+        if ".EGU" in reason:
+            base_PV = reason.strip('.EGU')
+            pv_value = STATIC_PV_DATABASE[base_PV]['unit']
+        else:
+            pv_value = self.PVValues[reason]
+
+        return pv_value
 
     def set_pv_value(self, reason, value):
         """
@@ -166,10 +172,11 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-        try:
-            PV_value = self.get_pv_value(reason)
 
-            PV_value = self.SettingPVs[reason].convert_to_pv(PV_value)
+        PV_value = self.get_pv_value(reason)
+        try:
+            if reason in self.SettingPVs:
+                PV_value = self.SettingPVs[reason].convert_to_pv(PV_value)
 
             return PV_value
             # return self.getParam(reason)

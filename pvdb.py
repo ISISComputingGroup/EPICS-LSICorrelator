@@ -1,6 +1,7 @@
 from __future__ import print_function, unicode_literals, division, absolute_import
 import sys
 import os
+from typing import Dict
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.utilities import char_waveform
@@ -18,6 +19,11 @@ FLOAT_AS_INT_PV_FIELDS = {'type': 'float', 'prec': 0, 'value': 0.0}
 CHAR_PV_FIELDS = {'type': 'char', 'count': 400}
 #ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStringsTruncated}
 #ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
+EGU_FIELD = {'type': 'string'}
+
+def get_egu_field_type(init_value):
+    """ Returns an EGU PV definition containing the value provided """
+    return {'type': 'string', 'value': init_value}
 
 
 class PvNames(object):
@@ -57,9 +63,9 @@ STATIC_PV_DATABASE = {
     PvNames.TRANSFERRATE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.TransferRate]},
     PvNames.OVERLOADLIMIT: {'type': 'float', 'prec': 0, 'value': 0.0, 'unit': 'Mcps'},
     PvNames.OVERLOADINTERVAL: FLOAT_AS_INT_PV_FIELDS,
-    PvNames.ERRORMSG: {'type': 'char', 'count': 400},
-    PvNames.FILEPATH: {'type': 'char', 'count': 400},
-    PvNames.FILENAME: {'type': 'char', 'count': 400},
+    PvNames.ERRORMSG: {'type': 'string'},
+    PvNames.FILEPATH: {'type': 'string'},
+    PvNames.FILENAME: {'type': 'string'},
     PvNames.TAKEDATA: {'type': 'int'},
     PvNames.CORRELATION_FUNCTION: {'type': 'float', 'count': 400},
     PvNames.LAGS: {'type': 'float', 'count': 400},
@@ -73,3 +79,16 @@ STATIC_PV_DATABASE = {
     PvNames.SOLVENT_REFRACTIVE_INDEX: {'type': 'float', 'unit': 'mPas'},
     PvNames.LASER_WAVELENGTH: {'type': 'float', 'unit': 'nm'}
 }
+
+
+def add_egu_fields(pvdb: Dict[str, Dict]):
+    """
+    Adds an EGU field to all pvs
+    """
+    EGU_pvs = {}
+    for pv_name, pv_definition in pvdb.items():
+        if 'unit' in pv_definition:
+            unit = pv_definition['unit']
+            EGU_pvs.update({"{PV_name}.EGU".format(PV_name=pv_name): get_egu_field_type(unit)})
+
+    pvdb.update(EGU_pvs)
