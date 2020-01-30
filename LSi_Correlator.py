@@ -66,7 +66,7 @@ class LSiCorrelatorDriver(Driver):
             PvNames.NORMALIZATION: LSI_Param.Normalization.COMPENSATED,
             PvNames.MEASUREMENTDURATION: 300,
             PvNames.SWAPCHANNELS: LSI_Param.SwapChannels.ChA_ChB,
-            PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns12_5,
+            PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns200,
             PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
             PvNames.OVERLOADLIMIT: 20,
             PvNames.OVERLOADINTERVAL: 400,
@@ -76,8 +76,6 @@ class LSiCorrelatorDriver(Driver):
             PvNames.CURRENT_REPEAT: 0,
             PvNames.CORRELATION_FUNCTION: [],
             PvNames.LAGS: [],
-            PvNames.TRACEA: [],
-            PvNames.TRACEB: [],
             PvNames.FILENAME: "",
             PvNames.FILEPATH: "",
             PvNames.CONNECTED: False,
@@ -237,13 +235,13 @@ class LSiCorrelatorDriver(Driver):
             Lags = Lags[np.isfinite(Corr)]
             Corr = Corr[np.isfinite(Corr)]
 
+            trace_A = np.asarray(self.device.TraceChA)
+            trace_B = np.asarray(self.device.TraceChB)
+
             self.set_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
             self.set_pv_value(PvNames.LAGS, Lags)
 
-            self.set_pv_value(PvNames.TRACEA, np.asarray(self.device.TraceChA))
-            self.set_pv_value(PvNames.TRACEB, np.asarray(self.device.TraceChB))
-
-            self.save_data(Corr, Lags)
+            self.save_data(Corr, Lags, trace_A, trace_B)
 
     def add_repetition_to_filename(self):
         """
@@ -259,7 +257,7 @@ class LSiCorrelatorDriver(Driver):
 
         return "{filepath}/{filename}_rep{current_repeat}".format(filepath=filepath, filename=filename, current_repeat=repeat)
 
-    def save_data(self, correlation, time_lags):
+    def save_data(self, correlation, time_lags, trace_A, trace_B):
         """
         Write the correlation function and time lags to file.
 
@@ -270,10 +268,33 @@ class LSiCorrelatorDriver(Driver):
 
         filename = self.add_repetition_to_filename()
 
-        with open(filename, 'w') as f:
-            data = np.vstack((time_lags, correlation)).T
+        correlation_data = np.vstack((time_lags, correlation)).T
+        raw_channel_data = np.vstack((trace_A, trace_B)).T
+        metadata_variables = [
+            PvNames.SCATTERING_ANGLE,
+            PvNames.SAMPLE_TEMP,
+            PvNames.SOLVENT_VISCOSITY,
+            PvNames.SOLVENT_REFRACTIVE_INDEX,
+            PvNames.LASER_WAVELENGTH,
+            PvNames.CORRELATIONTYPE,
+            PvNames.NORMALIZATION,
+            PvNames.MEASUREMENTDURATION,
+            PvNames.SWAPCHANNELS,
+            PvNames.SAMPLINGTIMEMULTIT,
+            PvNames.TRANSFERRATE,
+            PvNames.OVERLOADLIMIT,
+            PvNames.OVERLOADINTERVAL,
+            PvNames.REPETITIONS,
+            PvNames.CURRENT_REPEAT
+        ]
 
-            np.savetxt(f, data, delimiter=',', header='Time Lags,Correlation Function', fmt='%1.4e')
+        with open(filename, 'w') as f:
+
+            for metadata_variable in metadata_variables:
+                f.write("# {variable}: {value}\n".format(variable=metadata_variable,
+                                                         value=self.get_pv_value(metadata_variable)))
+            np.savetxt(f, correlation_data, delimiter=',', header='Time Lags,Correlation Function', fmt='%1.4e')
+            np.savetxt(f, raw_channel_data, delimiter=',', header='\nTraceA,TraceB', fmt='%1.4e')
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
         """
