@@ -2,6 +2,7 @@ from __future__ import print_function, unicode_literals, division, absolute_impo
 import sys
 import os
 from typing import Dict
+from pcaspy.alarm import AlarmStrings, SeverityStrings
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.utilities import char_waveform
@@ -17,8 +18,9 @@ OUT_IN_ENUM_TEXT = ["OUT", "IN"]
 STANDARD_FLOAT_PV_FIELDS = {'type': 'float', 'prec': 3, 'value': 0.0}
 FLOAT_AS_INT_PV_FIELDS = {'type': 'float', 'prec': 0, 'value': 0.0}
 CHAR_PV_FIELDS = {'type': 'char', 'count': 400}
-#ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStringsTruncated}
-#ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
+# Truncate as enum can only contain 16 states
+ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStrings[:16]}
+ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
 EGU_FIELD = {'type': 'string'}
 
 def get_egu_field_type(init_value):
@@ -104,5 +106,22 @@ def compile_array_pv_fields(static_pvs: Dict[str, Dict]):
 
     return array_fields
 
-EGU_PV_DATABASE = compile_EGU_field_pvs(STATIC_PV_DATABASE)
-ARRAY_FIELDS_DATABASE = compile_array_pv_fields(STATIC_PV_DATABASE)
+def add_fields_to_pvs(static_pvs: Dict[str, Dict]):
+    """ Creates PVs to allow fields to be read """
+    field_database = {}
+    for pv_name, pv_definition in static_pvs.items():
+        field_database.update({"{pv_name}.VAL".format(pv_name=pv_name): pv_definition})
+        field_database.update({"{pv_name}.SEVR".format(pv_name=pv_name): ALARM_SEVR_PV_FIELDS})
+        field_database.update({"{pv_name}.STAT".format(pv_name=pv_name): ALARM_STAT_PV_FIELDS})
+
+        if 'count' in pv_definition:
+            field_database.update({"{pv_name}.NORD".format(pv_name=pv_name): {'type': 'int', 'value': 0}})
+            field_database.update({"{pv_name}.NELM".format(pv_name=pv_name): {'type': 'int', 'value': pv_definition['count']}})
+
+        if 'unit' in pv_definition:
+            field_database.update({"{PV_name}.EGU".format(PV_name=pv_name): {'type': 'string', 'value': pv_definition['unit']}})
+
+    return field_database
+
+#EGU_PV_DATABASE = compile_EGU_field_pvs(STATIC_PV_DATABASE)
+FIELDS_DATABASE = add_fields_to_pvs(STATIC_PV_DATABASE)

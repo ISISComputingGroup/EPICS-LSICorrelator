@@ -20,7 +20,7 @@ sys.path.insert(2, 'C:\\Instrument\\Apps\\EPICS\\ISIS\\inst_servers\\master\\')
 from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 
-from pvdb import STATIC_PV_DATABASE, PvNames, EGU_PV_DATABASE, ARRAY_FIELDS_DATABASE
+from pvdb import STATIC_PV_DATABASE, PvNames, FIELDS_DATABASE
 from PVConfig import get_pv_configs
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
@@ -348,8 +348,7 @@ def serve_forever(pv_prefix):
     server = SimpleServer()
 
     server.createPV("{}LSI:".format(pv_prefix), STATIC_PV_DATABASE)
-    server.createPV("{}LSI:".format(pv_prefix), EGU_PV_DATABASE)
-    server.createPV("{}LSI:".format(pv_prefix), ARRAY_FIELDS_DATABASE)
+    server.createPV("{}LSI:".format(pv_prefix), FIELDS_DATABASE)
 
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
