@@ -125,11 +125,25 @@ class LSiCorrelatorDriver(Driver):
             reason (str): The name of the PV to set
             value: The new value for the PV
         """
-        self.PVValues[reason] = value
+        if reason in self.SettingPVs:
+            # Non-field PVs also get updated internally
+            self.PVValues[reason] = value
 
-        new_pv_value = self.SettingPVs[reason].convert_to_pv(value)
+            new_pv_value = self.SettingPVs[reason].convert_to_pv(value)
+        else:
+            new_pv_value = value
 
         self.setParam(reason, new_pv_value)
+
+    def set_array_pv_value(self, reason, value):
+        """
+        Helper function to update the value of an array PV and the array PV fields (NORD)
+        Args:
+            reason (str): The name of the PV to set
+            value: The new values to write to the array
+        """
+        self.set_pv_value(reason, value)
+        self.set_pv_value("{reason}.NORD".format(reason=reason), len(value))
 
     def update_error_pv(self, error_message):
         """
@@ -239,8 +253,8 @@ class LSiCorrelatorDriver(Driver):
             trace_A = np.asarray(self.device.TraceChA)
             trace_B = np.asarray(self.device.TraceChB)
 
-            self.set_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
-            self.set_pv_value(PvNames.LAGS, Lags)
+            self.set_array_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
+            self.set_array_pv_value(PvNames.LAGS, Lags)
 
             self.save_data(Corr, Lags, trace_A, trace_B)
 
