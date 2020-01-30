@@ -102,6 +102,19 @@ class LSiCorrelatorDriver(Driver):
             self.set_pv_value(PvNames.CONNECTED, self.device.isConnected())
             sleep(1.0)
 
+    def update_error_pv_print_and_log(self, error: str, severity: str = "INFO", src: str = "LSI") -> None:
+        """
+        Updates the error PV with the provided error message, then prints and logs the error
+
+        Args:
+            error: The error message
+            severity (optional): Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
+            src (optional): Gives the source of the message. Default source is LSI (from this IOC).
+        """
+
+        self.set_pv_value(PvNames.ERRORMSG, error)
+        print_and_log(error, severity, src)
+
     def get_pv_value(self, reason):
         """
         Helper function returns the value of a PV held in this driver
@@ -170,7 +183,7 @@ class LSiCorrelatorDriver(Driver):
         if reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
         else:
-            print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
+            self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
 
         # Update PVs after any write.
         self.updatePVs()
@@ -188,7 +201,7 @@ class LSiCorrelatorDriver(Driver):
         try:
             PV_value = self.get_pv_value(reason)
         except KeyError:
-            print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
+            self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
 
         return PV_value
 
@@ -203,15 +216,14 @@ class LSiCorrelatorDriver(Driver):
         """
         try:
             sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
-            print_and_log("setting {} to {}".format(reason, sanitised_value))
             self.SettingPVs[reason].set_on_device(sanitised_value)
 
             self.set_pv_value(reason, sanitised_value)
         except ValueError as err:
-            print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
+            self.update_error_pv_print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
             self.update_error_pv("{}".format(err))
         except KeyError:
-            print_and_log("Can't write to PV {}, PV not found".format(reason))
+            self.update_error_pv_print_and_log("Can't write to PV {}, PV not found".format(reason))
 
     def write_setting(self, reason, value):
         """
