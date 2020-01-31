@@ -164,8 +164,6 @@ class LSiCorrelatorDriver(Driver):
             else:
                 # Update local variable if setting has worked
                 self.PVValues[reason] = sanitised_value
-            
-            #self.update_local_variable_and_write_to_device(reason, sanitised_value)
 
     def set_array_pv_value(self, reason, value):
         """
@@ -212,11 +210,11 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-        # try:
-        PV_value = self.get_pv_value(reason)
-        # except KeyError:
-        #     self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
-        #     PV_value = None
+        try:
+            PV_value = self.get_pv_value(reason)
+        except KeyError:
+            self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
+            PV_value = None
 
         return PV_value
 
