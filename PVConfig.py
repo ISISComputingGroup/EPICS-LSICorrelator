@@ -55,18 +55,6 @@ def do_nothing(value):
     return value
 
 
-def check_can_write_to_file(filepath):
-    """
-    Attempts to open the given file to write to
-
-    Args:
-        filepath (str): The location of the file to write to
-    """
-
-    with open(filepath, 'w') as f:
-        f.write('')
-
-
 # SettingPVConfig is a data type to store information about the PVs used to set parameters in the LSi driver.
 # convert_from_pv is a function which takes in the raw PV value and returns it in a form which can be accepted by the driver.
 # convert_to_pv is a function which takes in the locally held PV value and returns a form which can be sent to the PV.
@@ -124,12 +112,12 @@ def get_pv_configs(device):
         PvNames.ERRORMSG: BasicPVConfig,
 
         PvNames.FILENAME: SettingPVConfig(convert_from_pv=check_filename_valid,
-                                          convert_to_pv=do_nothing,
+                                          convert_to_pv=check_filename_valid,
                                           set_on_device=do_nothing),
 
         PvNames.FILEPATH: SettingPVConfig(convert_from_pv=do_nothing,
                                           convert_to_pv=do_nothing,
-                                          set_on_device=os.path.isdir),
+                                          set_on_device=do_nothing),
 
         PvNames.TAKEDATA: BasicPVConfig,
         PvNames.CORRELATION_FUNCTION: BasicPVConfig,

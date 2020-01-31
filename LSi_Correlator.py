@@ -124,6 +124,10 @@ class LSiCorrelatorDriver(Driver):
         Args:
             reason (str): The name of the PV to get the value of
         """
+        if reason.endswith(":SP"):
+            # Return value of base PV, not setpoint
+            reason = reason[:-3]
+
         if reason in self.SettingPVs:
             # Need to convert internal state to PV (e.g. enum number)
             internal_pv_value = self.PVValues[reason]
@@ -144,7 +148,7 @@ class LSiCorrelatorDriver(Driver):
             # Non-field PVs also get updated internally
             self.PVValues[reason] = value
 
-            new_pv_value = self.SettingPVs[reason].convert_to_pv(value)
+            new_pv_value = self.SettingPVs[reason].convert_from_pv(value)
         else:
             new_pv_value = value
 
@@ -170,20 +174,24 @@ class LSiCorrelatorDriver(Driver):
         self.PVValues[PvNames.ERRORMSG] = error_message
 
     @_error_handler
-    def write(self, reason, value):
+    def write(self, reason: str, value):
         """
         Handle write to PV
         Args:
-            reason (str): PV to set value of
+            reason: PV to set value of
             value: Value to set
         """
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
-
         if reason == PvNames.TAKEDATA:
             THREADPOOL.submit(self.take_data)
 
         elif reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
+
+        elif reason.endswith(":SP") and reason[:-3] in STATIC_PV_DATABASE.keys():
+            # Update both SP and non-SP fields
+            THREADPOOL.submit(self.update_pv_value, reason, value)
+            THREADPOOL.submit(self.update_pv_value, reason[:-3], value)
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
 
@@ -204,6 +212,7 @@ class LSiCorrelatorDriver(Driver):
             PV_value = self.get_pv_value(reason)
         except KeyError:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
+            PV_value = None
 
         return PV_value
 
@@ -217,7 +226,7 @@ class LSiCorrelatorDriver(Driver):
             value: The value to set
         """
         try:
-            sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
+            sanitised_value = self.SettingPVs[reason].convert_to_pv(value)
             self.SettingPVs[reason].set_on_device(sanitised_value)
 
             self.set_pv_value(reason, sanitised_value)

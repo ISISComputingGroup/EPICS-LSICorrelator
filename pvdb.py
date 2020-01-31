@@ -82,6 +82,7 @@ STATIC_PV_DATABASE = {
     PvNames.DISABLE: PARAM_FIELDS_BINARY
 }
 
+
 def add_fields_to_pvs(static_pvs: Dict[str, Dict]):
     """ Creates PVs to allow fields to be read """
     field_database = {}
@@ -89,6 +90,7 @@ def add_fields_to_pvs(static_pvs: Dict[str, Dict]):
         field_database.update({"{pv_name}.VAL".format(pv_name=pv_name): pv_definition})
         field_database.update({"{pv_name}.SEVR".format(pv_name=pv_name): ALARM_SEVR_PV_FIELDS})
         field_database.update({"{pv_name}.STAT".format(pv_name=pv_name): ALARM_STAT_PV_FIELDS})
+        field_database.update({"{pv_name}:SP".format(pv_name=pv_name): pv_definition})
 
         if 'count' in pv_definition:
             field_database.update({"{pv_name}.NORD".format(pv_name=pv_name): {'type': 'int', 'value': 0}})
