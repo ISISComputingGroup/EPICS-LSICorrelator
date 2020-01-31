@@ -141,7 +141,8 @@ class LSiCorrelatorDriver(Driver):
 
         return pv_value
 
-    def set_pv_value(self, reason, value):
+    @_error_handler
+    def update_pv_value(self, reason, value):
         """
         Helper function to update the value of a PV held in this driver
 
@@ -217,26 +218,6 @@ class LSiCorrelatorDriver(Driver):
             PV_value = None
 
         return PV_value
-
-    @_error_handler
-    def update_pv_value(self, reason, value):
-        """
-        Adds a PV update to the thread pool
-
-        Args:
-            reason (str): PV to read
-            value: The value to set
-        """
-        # try:
-        #sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
-        #self.SettingPVs[reason].set_on_device(sanitised_value)
-
-        self.set_pv_value(reason, value)
-        # except ValueError as err:
-        #     self.update_error_pv_print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
-        #     self.update_error_pv_print_and_log("{}".format(err))
-        # except KeyError:
-        #     self.update_error_pv_print_and_log("Can't write to PV {}, PV not found".format(reason))
 
     @_error_handler
     def take_data(self):
