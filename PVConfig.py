@@ -11,7 +11,6 @@ g.set_instrument(None)
 
 def get_default_filename():
     """ Returns a default filename from the current run number and title """
-    g.set_instrument(None)
     return "{run_number}_{title}".format(run_number=g.get_runnumber(), title=g.get_title())
 
 
