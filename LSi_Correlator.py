@@ -38,6 +38,11 @@ def _error_handler(func):
     return _wrapper
 
 
+def get_base_pv(reason: str):
+    """ Trims trailing :SP off a PV name """
+    return reason[:-3]
+
+
 THREADPOOL = ThreadPoolExecutor()
 
 
@@ -126,15 +131,14 @@ class LSiCorrelatorDriver(Driver):
         """
         if reason.endswith(":SP"):
             # Return value of base PV, not setpoint
-            reason = reason[:-3]
+            reason = get_base_pv(reason)
 
         if reason in self.SettingPVs:
             # Need to convert internal state to PV (e.g. enum number)
-            internal_pv_value = self.PVValues[reason]
-            print_and_log('### {}'.format(internal_pv_value))
-            pv_value = self.SettingPVs[reason].convert_to_pv(internal_pv_value)
+            pv_value = self.SettingPVs[reason].convert_to_pv(self.PVValues[reason])
         else:
             pv_value = self.getParam(reason)
+
         return pv_value
 
     def set_pv_value(self, reason, value):
@@ -145,15 +149,23 @@ class LSiCorrelatorDriver(Driver):
             reason (str): The name of the PV to set
             value: The new value for the PV
         """
+        self.setParam(reason, value)
+
         if reason in self.SettingPVs:
             # Non-field PVs also get updated internally
-            new_pv_value = self.SettingPVs[reason].convert_from_pv(value)
-            self.PVValues[reason] = new_pv_value
-            print_and_log('set {} to {}'.format(reason, self.PVValues[reason]))
-        else:
-            new_pv_value = value
-
-        self.setParam(reason, value)
+            sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
+            try:
+                self.SettingPVs[reason].set_on_device(sanitised_value)
+            except ValueError as err:
+                self.update_error_pv_print_and_log("Error setting PV {pv} to {value}:".format(pv=reason, value=value))
+                self.update_error_pv_print_and_log("{}".format(err))
+            except KeyError:
+                self.update_error_pv_print_and_log("Can't write to PV {}, PV not found".format(reason))
+            else:
+                # Update local variable if setting has worked
+                self.PVValues[reason] = sanitised_value
+            
+            #self.update_local_variable_and_write_to_device(reason, sanitised_value)
 
     def set_array_pv_value(self, reason, value):
         """
@@ -180,13 +192,10 @@ class LSiCorrelatorDriver(Driver):
         elif reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
 
-        elif reason.endswith(":SP"):
-            print_and_log(reason)
-            print_and_log(reason[:-3])
-            if reason[:-3] in STATIC_PV_DATABASE.keys():
-                # Update both SP and non-SP fields
-                THREADPOOL.submit(self.update_pv_value, reason, value)
-                THREADPOOL.submit(self.update_pv_value, reason[:-3], value)
+        elif reason.endswith(":SP") and get_base_pv(reason) in STATIC_PV_DATABASE.keys():
+            # Update both SP and non-SP fields
+            THREADPOOL.submit(self.update_pv_value, reason, value)
+            THREADPOOL.submit(self.update_pv_value, get_base_pv(reason), value)
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
 
