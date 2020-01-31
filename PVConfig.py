@@ -33,8 +33,10 @@ def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
         enum_class (Enum): The LSI_Param Enum containing the device parameters
         pv_value (int): The enumerated value from the PV
     """
+    print('{} read from pv'.format(pv_value))
+    enum_as_list = [member for member in enum_class]
+    print('class is {}, selected enum is {}'.format(enum_as_list, enum_as_list[pv_value]))
     return [enum for enum in enum_class][pv_value]
-
 
 def convert_lsi_enum_to_pv_value(enum_class, current_state):
     """
@@ -44,8 +46,17 @@ def convert_lsi_enum_to_pv_value(enum_class, current_state):
         enum_class (Enum): The LSI_Param Enum containing the device parameters
         current_state: The Enum member to be looked up and written to the PV
     """
+    state_name = enum_class(current_state)
+    enum_as_list = [member for member in enum_class]
+    print('converting state {} in {} to {}'.format(current_state, enum_as_list, enum_as_list.index(state_name)))
+    return enum_as_list.index(state_name)
+    #return [enum for enum in enum_class].index(current_state)
 
-    return [enum for enum in enum_class].index(current_state)
+    # state_name = enum_class(current_state).name
+    # enum_as_list = [member.name for member in enum_class]
+    # print('converting state {} in {} to {}'.format(current_state, enum_as_list, enum_as_list.index(state_name)))
+    # return enum_as_list.index(state_name)
+    # #return [enum for enum in enum_class].index(current_state)
 
 
 def do_nothing(value):

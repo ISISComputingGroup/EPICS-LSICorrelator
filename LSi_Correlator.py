@@ -101,7 +101,7 @@ class LSiCorrelatorDriver(Driver):
     def check_if_connected(self):
         """ Updates the CONNECTED PV with the current connection status """
         while True:
-            self.set_pv_value(PvNames.CONNECTED, self.device.isConnected())
+            self.update_pv_value(PvNames.CONNECTED, self.device.isConnected())
             sleep(1.0)
 
     def update_error_pv_print_and_log(self, error: str, severity: str = "INFO", src: str = "LSI") -> None:
@@ -114,7 +114,7 @@ class LSiCorrelatorDriver(Driver):
             src (optional): Gives the source of the message. Default source is LSI (from this IOC).
         """
 
-        self.set_pv_value(PvNames.ERRORMSG, error)
+        self.update_pv_value(PvNames.ERRORMSG, error)
         print_and_log(error, severity, src)
 
     def get_pv_value(self, reason):
@@ -131,6 +131,7 @@ class LSiCorrelatorDriver(Driver):
         if reason in self.SettingPVs:
             # Need to convert internal state to PV (e.g. enum number)
             internal_pv_value = self.PVValues[reason]
+            print_and_log('### {}'.format(internal_pv_value))
             pv_value = self.SettingPVs[reason].convert_to_pv(internal_pv_value)
         else:
             pv_value = self.getParam(reason)
@@ -146,13 +147,18 @@ class LSiCorrelatorDriver(Driver):
         """
         if reason in self.SettingPVs:
             # Non-field PVs also get updated internally
+            #new_pv_value = self.SettingPVs[reason].convert_from_pv(value)
             self.PVValues[reason] = value
-
+            #print_and_log('set {} to {}'.format(reason, value))
+            #normies = [member for member in LSI_Param.Normalization]
+            #print_and_log(normies[value])
             new_pv_value = self.SettingPVs[reason].convert_from_pv(value)
+
+            self.SettingPVs[reason].set_on_device(new_pv_value)
         else:
             new_pv_value = value
 
-        self.setParam(reason, new_pv_value)
+        self.setParam(reason, value)
 
     def set_array_pv_value(self, reason, value):
         """
@@ -161,17 +167,8 @@ class LSiCorrelatorDriver(Driver):
             reason (str): The name of the PV to set
             value: The new values to write to the array
         """
-        self.set_pv_value(reason, value)
-        self.set_pv_value("{reason}.NORD".format(reason=reason), len(value))
-
-    def update_error_pv(self, error_message):
-        """
-        Helper function to update the error string PV
-
-        Args:
-            error_message (str): The string to write to the error PV
-        """
-        self.PVValues[PvNames.ERRORMSG] = error_message
+        self.update_pv_value(reason, value)
+        self.update_pv_value("{reason}.NORD".format(reason=reason), len(value))
 
     @_error_handler
     def write(self, reason: str, value):
@@ -188,10 +185,13 @@ class LSiCorrelatorDriver(Driver):
         elif reason in STATIC_PV_DATABASE.keys():
             THREADPOOL.submit(self.update_pv_value, reason, value)
 
-        elif reason.endswith(":SP") and reason[:-3] in STATIC_PV_DATABASE.keys():
-            # Update both SP and non-SP fields
-            THREADPOOL.submit(self.update_pv_value, reason, value)
-            THREADPOOL.submit(self.update_pv_value, reason[:-3], value)
+        elif reason.endswith(":SP"):
+            print_and_log(reason)
+            print_and_log(reason[:-3])
+            if reason[:-3] in STATIC_PV_DATABASE.keys():
+                # Update both SP and non-SP fields
+                THREADPOOL.submit(self.update_pv_value, reason, value)
+                THREADPOOL.submit(self.update_pv_value, reason[:-3], value)
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
 
@@ -225,25 +225,16 @@ class LSiCorrelatorDriver(Driver):
             reason (str): PV to read
             value: The value to set
         """
-        try:
-            sanitised_value = self.SettingPVs[reason].convert_to_pv(value)
-            self.SettingPVs[reason].set_on_device(sanitised_value)
+        # try:
+        sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
+        self.SettingPVs[reason].set_on_device(sanitised_value)
 
-            self.set_pv_value(reason, sanitised_value)
-        except ValueError as err:
-            self.update_error_pv_print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
-            self.update_error_pv("{}".format(err))
-        except KeyError:
-            self.update_error_pv_print_and_log("Can't write to PV {}, PV not found".format(reason))
-
-    def write_setting(self, reason, value):
-        """
-        Sets the measurment duration in the LSi Correlator class to value
-        Args:
-            value (float): The duration of the measurement in seconds
-        """
-        device_setter = self.get_device_setting_function(reason)
-        device_setter(value)
+        self.set_pv_value(reason, value)
+        # except ValueError as err:
+        #     self.update_error_pv_print_and_log("Error setting PV {pv} to {value}: {error}".format(pv=reason, value=value, error=err))
+        #     self.update_error_pv_print_and_log("{}".format(err))
+        # except KeyError:
+        #     self.update_error_pv_print_and_log("Can't write to PV {}, PV not found".format(reason))
 
     @_error_handler
     def take_data(self):
@@ -256,16 +247,16 @@ class LSiCorrelatorDriver(Driver):
         self.device.configure()
 
         for repeat in range(self.PVValues[PvNames.REPETITIONS]):
-            self.set_pv_value(PvNames.CURRENT_REPEAT, repeat)
+            self.update_pv_value(PvNames.CURRENT_REPEAT, repeat)
 
             self.device.start()
 
             while self.device.MeasurementOn():
                 sleep(0.5)
-                self.set_pv_value(PvNames.RUNNING, True)
+                self.update_pv_value(PvNames.RUNNING, True)
                 self.device.update()
 
-            self.set_pv_value(PvNames.RUNNING, False)
+            self.update_pv_value(PvNames.RUNNING, False)
 
             Corr = np.asarray(self.device.Correlation)
             Lags = np.asarray(self.device.Lags)
