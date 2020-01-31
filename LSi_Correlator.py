@@ -147,14 +147,9 @@ class LSiCorrelatorDriver(Driver):
         """
         if reason in self.SettingPVs:
             # Non-field PVs also get updated internally
-            #new_pv_value = self.SettingPVs[reason].convert_from_pv(value)
-            self.PVValues[reason] = value
-            #print_and_log('set {} to {}'.format(reason, value))
-            #normies = [member for member in LSI_Param.Normalization]
-            #print_and_log(normies[value])
             new_pv_value = self.SettingPVs[reason].convert_from_pv(value)
-
-            self.SettingPVs[reason].set_on_device(new_pv_value)
+            self.PVValues[reason] = new_pv_value
+            print_and_log('set {} to {}'.format(reason, self.PVValues[reason]))
         else:
             new_pv_value = value
 
@@ -208,11 +203,11 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-        try:
-            PV_value = self.get_pv_value(reason)
-        except KeyError:
-            self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
-            PV_value = None
+        # try:
+        PV_value = self.get_pv_value(reason)
+        # except KeyError:
+        #     self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
+        #     PV_value = None
 
         return PV_value
 
@@ -226,8 +221,8 @@ class LSiCorrelatorDriver(Driver):
             value: The value to set
         """
         # try:
-        sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
-        self.SettingPVs[reason].set_on_device(sanitised_value)
+        #sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
+        #self.SettingPVs[reason].set_on_device(sanitised_value)
 
         self.set_pv_value(reason, value)
         # except ValueError as err:
