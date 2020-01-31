@@ -55,7 +55,6 @@ def convert_lsi_enum_to_pv_value(enum_class, current_state):
     # return enum_as_list.index(state_name)
     # #return [enum for enum in enum_class].index(current_state)
 
-
 def do_nothing(value):
     """
     No-op for outputs which do not need modifying
@@ -75,6 +74,11 @@ SettingPVConfig = namedtuple("SettingPVConfig", ["convert_from_pv", "convert_to_
 BasicPVConfig = SettingPVConfig(convert_from_pv=do_nothing,
                                 convert_to_pv=do_nothing,
                                 set_on_device=do_nothing)
+
+
+BoolPVConfig = SettingPVConfig(convert_from_pv=bool,
+                               convert_to_pv=int,
+                               set_on_device=do_nothing)
 
 
 def get_pv_configs(device):
@@ -127,20 +131,21 @@ def get_pv_configs(device):
                                           convert_to_pv=do_nothing,
                                           set_on_device=do_nothing),
 
-        PvNames.TAKEDATA: BasicPVConfig,
+        PvNames.START: BoolPVConfig,
+        PvNames.STOP: BoolPVConfig,
         PvNames.CORRELATION_FUNCTION: BasicPVConfig,
         PvNames.LAGS: BasicPVConfig,
         PvNames.REPETITIONS: BasicPVConfig,
         PvNames.CURRENT_REPEAT: BasicPVConfig,
-        PvNames.CONNECTED: BasicPVConfig,
-        PvNames.RUNNING: BasicPVConfig,
+        PvNames.CONNECTED: BoolPVConfig,
+        PvNames.RUNNING: BoolPVConfig,
         PvNames.SCATTERING_ANGLE: BasicPVConfig,
         PvNames.SAMPLE_TEMP: BasicPVConfig,
         PvNames.SOLVENT_VISCOSITY: BasicPVConfig,
         PvNames.SOLVENT_REFRACTIVE_INDEX: BasicPVConfig,
         PvNames.LASER_WAVELENGTH: BasicPVConfig,
-        PvNames.SIM: BasicPVConfig,
-        PvNames.DISABLE: BasicPVConfig
+        PvNames.SIM: BoolPVConfig,
+        PvNames.DISABLE: BoolPVConfig
     }
 
     for pv in STATIC_PV_DATABASE.keys():

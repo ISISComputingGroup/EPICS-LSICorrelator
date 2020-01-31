@@ -36,7 +36,8 @@ class PvNames(object):
     ERRORMSG = "ERRORMSG"
     FILEPATH = "FILEPATH"
     FILENAME = "FILENAME"
-    TAKEDATA = "TAKEDATA"
+    START = "START"
+    STOP = "STOP"
     CORRELATION_FUNCTION = "CORRELATION_FUNCTION"
     LAGS = "LAGS"
     TRACEA = "TRACEA"
@@ -66,7 +67,8 @@ STATIC_PV_DATABASE = {
     PvNames.ERRORMSG: CHAR_PV_FIELDS,
     PvNames.FILEPATH: CHAR_PV_FIELDS,
     PvNames.FILENAME: CHAR_PV_FIELDS,
-    PvNames.TAKEDATA: {'type': 'int'},
+    PvNames.START: PARAM_FIELDS_BINARY,
+    PvNames.STOP: PARAM_FIELDS_BINARY,
     PvNames.CORRELATION_FUNCTION: {'type': 'float', 'count': 400},
     PvNames.LAGS: {'type': 'float', 'count': 400},
     PvNames.REPETITIONS: FLOAT_AS_INT_PV_FIELDS,

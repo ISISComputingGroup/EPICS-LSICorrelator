@@ -76,7 +76,8 @@ class LSiCorrelatorDriver(Driver):
             PvNames.OVERLOADLIMIT: 20,
             PvNames.OVERLOADINTERVAL: 400,
             PvNames.ERRORMSG: "",
-            PvNames.TAKEDATA: 0,
+            PvNames.START: 0,
+            PvNames.STOP: 0,
             PvNames.REPETITIONS: 2,
             PvNames.CURRENT_REPEAT: 0,
             PvNames.CORRELATION_FUNCTION: [],
@@ -185,7 +186,7 @@ class LSiCorrelatorDriver(Driver):
             value: Value to set
         """
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
-        if reason == PvNames.TAKEDATA:
+        if reason == PvNames.START:
             THREADPOOL.submit(self.take_data)
 
         elif reason in STATIC_PV_DATABASE.keys():
@@ -235,6 +236,8 @@ class LSiCorrelatorDriver(Driver):
             self.device.start()
 
             while self.device.MeasurementOn():
+                if self.PVValues[PvNames.STOP]:
+                    self.device.stop()
                 sleep(0.5)
                 self.update_pv_value(PvNames.RUNNING, True)
                 self.device.update()
