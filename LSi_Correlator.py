@@ -330,11 +330,12 @@ class LSiCorrelatorDriver(Driver):
         print_and_log("LSiCorrelatorDriver: Finished setting instrument to {}".format(self._remote_pv_prefix))
 
 
-def serve_forever(pv_prefix):
+def serve_forever(ioc_number: int, pv_prefix: str):
     """
     Server the PVs for the remote ioc server
     Args:
-        pv_prefix: prefex for the pvs
+        ioc_numer: The number of the IOC to be run (e.g. 1 for LSICORR_01)
+        pv_prefix: prefix for the pvs
         subsystem_prefix: prefix for the PVs published by the remote IOC server
         gateway_pvlist_path: The path to the gateway pvlist file to generate
         gateway_acf_path: The path to the gateway access security file to generate
@@ -343,10 +344,13 @@ def serve_forever(pv_prefix):
     Returns:
 
     """
+    ioc_name = "LSICORR_{:02d}".format(ioc_number)
+    ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(pv_prefix=pv_prefix, ioc_name=ioc_name)
+    print_and_log(ioc_name_with_pv_prefix)
     server = SimpleServer()
 
-    server.createPV("{}LSI:".format(pv_prefix), STATIC_PV_DATABASE)
-    server.createPV("{}LSI:".format(pv_prefix), FIELDS_DATABASE)
+    server.createPV(ioc_name_with_pv_prefix, STATIC_PV_DATABASE)
+    server.createPV(ioc_name_with_pv_prefix, FIELDS_DATABASE)
 
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
@@ -357,7 +361,7 @@ def serve_forever(pv_prefix):
     LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision)
 
     ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
-    ioc_data_source.insert_ioc_start("LSICORR_01", os.getpid(), sys.argv[0], STATIC_PV_DATABASE, "{}LSI:".format(pv_prefix))
+    ioc_data_source.insert_ioc_start(ioc_name, os.getpid(), sys.argv[0], STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
 
     try:
         while True:
@@ -376,6 +380,8 @@ def main():
         description="Runs a remote IOC server.",
     )
 
+    parser.add_argument("--ioc_number", default=1, type=int)
+
     parser.add_argument("--pv_prefix", required=True, type=six.text_type,
                         help="The PV prefix of this instrument.")
 
@@ -386,6 +392,7 @@ def main():
     print("IOC started")
 
     serve_forever(
+        args.ioc_number,
         args.pv_prefix,
     )
 
