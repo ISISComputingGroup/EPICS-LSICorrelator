@@ -34,6 +34,7 @@ def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
     """
     return [enum for enum in enum_class][pv_value]
 
+
 def convert_lsi_enum_to_pv_value(enum_class, current_state):
     """
     Takes a driver parameter and returns its associated enum value for the PV

@@ -356,6 +356,9 @@ def serve_forever(pv_prefix):
     firmware_revision = '4.0.0.3'
     LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision)
 
+    ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
+    ioc_data_source.insert_ioc_start("LSICORR_01", os.getpid(), sys.argv[0], STATIC_PV_DATABASE, "{}LSI:".format(pv_prefix))
+
     try:
         while True:
             server.process(0.1)
