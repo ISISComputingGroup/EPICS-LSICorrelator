@@ -236,8 +236,6 @@ class LSiCorrelatorDriver(Driver):
             self.device.start()
 
             while self.device.MeasurementOn():
-                if self.PVValues[PvNames.STOP]:
-                    self.device.stop()
                 sleep(0.5)
                 self.update_pv_value(PvNames.RUNNING, True)
                 self.device.update()

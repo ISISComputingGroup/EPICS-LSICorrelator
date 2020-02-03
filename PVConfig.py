@@ -46,6 +46,12 @@ def convert_lsi_enum_to_pv_value(enum_class, current_state):
     enum_as_list = [member for member in enum_class]
     return enum_as_list.index(state_name)
 
+
+def stop_device(device, _):
+    """ Calls the stop procedure on the device"""
+    device.stop()
+
+
 def do_nothing(value):
     """
     No-op for outputs which do not need modifying
@@ -123,7 +129,9 @@ def get_pv_configs(device):
                                           set_on_device=do_nothing),
 
         PvNames.START: BoolPVConfig,
-        PvNames.STOP: BoolPVConfig,
+        PvNames.STOP: SettingPVConfig(convert_from_pv=do_nothing,
+                                      convert_to_pv=do_nothing,
+                                      set_on_device=partial(stop_device, device)),
         PvNames.CORRELATION_FUNCTION: BasicPVConfig,
         PvNames.LAGS: BasicPVConfig,
         PvNames.REPETITIONS: BasicPVConfig,
