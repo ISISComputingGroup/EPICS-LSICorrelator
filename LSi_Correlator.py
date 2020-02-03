@@ -98,7 +98,7 @@ class LSiCorrelatorDriver(Driver):
         for pv, preset in self.PVValues.items():
             # Write defaults to device
             print('setting {} to {}', pv, preset)
-            self.SettingPVs[pv].set_on_device(preset)
+            self.update_pv_value(pv, self.SettingPVs[pv].convert_to_pv(preset))
 
         self.updatePVs()
 
@@ -152,6 +152,7 @@ class LSiCorrelatorDriver(Driver):
             value: The new value for the PV
         """
         self.setParam(reason, value)
+        self.setParam("{reason}.VAL".format(reason=reason), value)
 
         if reason in self.SettingPVs:
             # Non-field PVs also get updated internally
@@ -189,13 +190,12 @@ class LSiCorrelatorDriver(Driver):
         if reason == PvNames.START:
             THREADPOOL.submit(self.take_data)
 
-        elif reason in STATIC_PV_DATABASE.keys():
-            THREADPOOL.submit(self.update_pv_value, reason, value)
-
-        elif reason.endswith(":SP") and get_base_pv(reason) in STATIC_PV_DATABASE.keys():
+        if reason.endswith(":SP") and get_base_pv(reason) in STATIC_PV_DATABASE.keys():
             # Update both SP and non-SP fields
             THREADPOOL.submit(self.update_pv_value, reason, value)
             THREADPOOL.submit(self.update_pv_value, get_base_pv(reason), value)
+        elif reason in STATIC_PV_DATABASE.keys():
+            THREADPOOL.submit(self.update_pv_value, reason, value)
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
 
@@ -355,7 +355,6 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
     # of how it achieves this.
-    pv_prefix = 'TE:NDW1836:'
     ip_address = '127.0.0.1'
     firmware_revision = '4.0.0.3'
     LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision)
