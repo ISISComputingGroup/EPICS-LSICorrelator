@@ -12,16 +12,12 @@ from LSI import LSI_Param
 
 
 PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
-PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
-PARAM_FIELDS_ACTION = {'type': 'int', 'count': 1, 'value': 0}
-OUT_IN_ENUM_TEXT = ["OUT", "IN"]
-STANDARD_FLOAT_PV_FIELDS = {'type': 'float', 'prec': 3, 'value': 0.0}
-FLOAT_AS_INT_PV_FIELDS = {'type': 'float', 'prec': 0, 'value': 0.0}
-CHAR_PV_FIELDS = {'type': 'char', 'count': 400}
+PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"], 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
+INT_AS_FLOAT_PV = {'type': 'float', 'prec': 0, 'value': 0.0, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
+CHAR_PV_FIELDS = {'type': 'char', 'count': 400, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
 # Truncate as enum can only contain 16 states
 ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStrings[:16]}
 ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
-STRING_FIELD = {'type': 'string'}
 
 
 class PvNames(object):
@@ -58,12 +54,12 @@ class PvNames(object):
 STATIC_PV_DATABASE = {
     PvNames.CORRELATIONTYPE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.CorrelationType]},
     PvNames.NORMALIZATION: {'type': 'enum', 'enums': [member.name for member in LSI_Param.Normalization]},
-    PvNames.MEASUREMENTDURATION: FLOAT_AS_INT_PV_FIELDS,
+    PvNames.MEASUREMENTDURATION: INT_AS_FLOAT_PV,
     PvNames.SWAPCHANNELS: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SwapChannels]},
     PvNames.SAMPLINGTIMEMULTIT: {'type': 'enum', 'enums': [member.name for member in LSI_Param.SamplingTimeMultiT]},
     PvNames.TRANSFERRATE: {'type': 'enum', 'enums': [member.name for member in LSI_Param.TransferRate]},
     PvNames.OVERLOADLIMIT: {'type': 'float', 'prec': 0, 'value': 0.0, 'unit': 'Mcps'},
-    PvNames.OVERLOADINTERVAL: FLOAT_AS_INT_PV_FIELDS,
+    PvNames.OVERLOADINTERVAL: INT_AS_FLOAT_PV,
     PvNames.ERRORMSG: CHAR_PV_FIELDS,
     PvNames.FILEPATH: CHAR_PV_FIELDS,
     PvNames.FILENAME: CHAR_PV_FIELDS,
@@ -71,8 +67,8 @@ STATIC_PV_DATABASE = {
     PvNames.STOP: PARAM_FIELDS_BINARY,
     PvNames.CORRELATION_FUNCTION: {'type': 'float', 'count': 400},
     PvNames.LAGS: {'type': 'float', 'count': 400},
-    PvNames.REPETITIONS: FLOAT_AS_INT_PV_FIELDS,
-    PvNames.CURRENT_REPEAT: FLOAT_AS_INT_PV_FIELDS,
+    PvNames.REPETITIONS: INT_AS_FLOAT_PV,
+    PvNames.CURRENT_REPEAT: INT_AS_FLOAT_PV,
     PvNames.CONNECTED: PARAM_FIELDS_BINARY,
     PvNames.RUNNING: PARAM_FIELDS_BINARY,
     PvNames.SCATTERING_ANGLE: {'type': 'float', 'unit': 'degree', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
@@ -80,8 +76,8 @@ STATIC_PV_DATABASE = {
     PvNames.SOLVENT_VISCOSITY: {'type': 'float', 'unit': '', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
     PvNames.SOLVENT_REFRACTIVE_INDEX: {'type': 'float', 'unit': 'mPas', 'info_field': {'archive': '', 'INTEREST': 'HIGH'}},
     PvNames.LASER_WAVELENGTH: {'type': 'float', 'unit': 'nm', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
-    PvNames.SIM: PARAM_FIELDS_BINARY,
-    PvNames.DISABLE: PARAM_FIELDS_BINARY
+    PvNames.SIM: {'type': 'enum', 'enums': ["NO", "YES"]},
+    PvNames.DISABLE: {'type': 'enum', 'enums': ["NO", "YES"]}
 }
 
 
