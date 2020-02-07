@@ -122,6 +122,10 @@ class LSiCorrelatorDriver(Driver):
         self.update_pv_value(PvNames.ERRORMSG, error)
         print_and_log(error, severity, src)
 
+    def set_disconnected_alarms(self, state: bool):
+        """ Sets disconnected alarms if state is True"""
+        pass
+
     def get_pv_value(self, reason):
         """
         Helper function returns the value of a PV held in this driver
@@ -208,7 +212,6 @@ class LSiCorrelatorDriver(Driver):
         Args:
             reason (str): PV to read value of
         """
-        print_and_log("LSiCorrelatorDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
         try:
@@ -218,6 +221,28 @@ class LSiCorrelatorDriver(Driver):
             PV_value = None
 
         return PV_value
+
+    def get_data_as_arrays(self):
+        """
+        Converts the correlation function, time lags and raw traces as numpy arrays.
+        The correlation function and time lags are filtered to finite values only.
+
+        Returns:
+            Corr (ndarray): The finite values of the correlation function
+            Lags (ndarray): Time lags where the correlation function is finite
+            trace_A (ndarray): Raw photon counts for channel A
+            trace_B (ndarray): Raw photon counts for channel B
+        """
+        Corr = np.asarray(self.device.Correlation)
+        Lags = np.asarray(self.device.Lags)
+
+        Lags = Lags[np.isfinite(Corr)]
+        Corr = Corr[np.isfinite(Corr)]
+
+        trace_A = np.asarray(self.device.TraceChA)
+        trace_B = np.asarray(self.device.TraceChB)
+
+        return Corr, Lags, trace_A, trace_B
 
     @_error_handler
     def take_data(self):
@@ -229,7 +254,7 @@ class LSiCorrelatorDriver(Driver):
         """
         self.device.configure()
 
-        for repeat in range(self.PVValues[PvNames.REPETITIONS]):
+        for repeat in range(1, self.PVValues[PvNames.REPETITIONS]+1):
             self.update_pv_value(PvNames.CURRENT_REPEAT, repeat)
 
             self.device.start()
@@ -241,19 +266,12 @@ class LSiCorrelatorDriver(Driver):
 
             self.update_pv_value(PvNames.RUNNING, False)
 
-            Corr = np.asarray(self.device.Correlation)
-            Lags = np.asarray(self.device.Lags)
-
-            if Corr is None:
+            if self.device.Correlation is None:
                 # No data returned, correlator may be disconnected
                 self.update_pv_value(PvNames.CONNECTED, False)
-                self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read from device. Device possibly disconnected", "INVALID")
+                self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could have disconnected", "INVALID")
             else:
-                Lags = Lags[np.isfinite(Corr)]
-                Corr = Corr[np.isfinite(Corr)]
-
-                trace_A = np.asarray(self.device.TraceChA)
-                trace_B = np.asarray(self.device.TraceChB)
+                Corr, Lags, trace_A, trace_B = self.get_data_as_arrays()
 
                 self.set_array_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
                 self.set_array_pv_value(PvNames.LAGS, Lags)
@@ -280,7 +298,7 @@ class LSiCorrelatorDriver(Driver):
             time_lags (float array): The time lags
         """
 
-        filename = self.add_repetition_to_filename()
+        filename = self.add_timestamp_to_filename()
 
         correlation_data = np.vstack((time_lags, correlation)).T
         raw_channel_data = np.vstack((trace_A, trace_B)).T
