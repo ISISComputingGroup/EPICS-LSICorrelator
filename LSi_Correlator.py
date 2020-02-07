@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
 from time import sleep
+from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
@@ -267,19 +268,16 @@ class LSiCorrelatorDriver(Driver):
 
                 self.save_data(Corr, Lags, trace_A, trace_B)
 
-    def add_repetition_to_filename(self):
+    def add_timestamp_to_filename(self):
         """
-        Adds the current repetition number to the supplied filepath/filename
-
-        Args:
-            filename (str): The filename
+        Adds a timestamp to the current filepath/filename
         """
 
         filepath = self.get_pv_value(PvNames.FILEPATH)
         filename = self.get_pv_value(PvNames.FILENAME)
-        repeat = self.get_pv_value(PvNames.CURRENT_REPEAT)
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
 
-        return "{filepath}/{filename}_rep{current_repeat}".format(filepath=filepath, filename=filename, current_repeat=repeat)
+        return "{filepath}/{filename}_{timestamp}".format(filepath=filepath, filename=filename, timestamp=timestamp)
 
     def save_data(self, correlation, time_lags, trace_A, trace_B):
         """
