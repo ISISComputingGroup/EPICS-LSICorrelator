@@ -51,14 +51,15 @@ class LSiCorrelatorDriver(Driver):
     A driver for the LSi Correlator
     """
 
-    def __init__(self, pv_prefix, host, firmware_revision):
+    def __init__(self, pv_prefix, host: str, firmware_revision: str, filepath: str):
         """
         A driver for the LSi Correlator
 
         Args:
             pv_prefix: the pv prefix
-            host (string): The IP address of the LSi Correlator
-            firmware (string): The firmware revision of the LSi Correlator
+            host: The IP address of the LSi Correlator
+            firmware: The firmware revision of the LSi Correlator
+            filepath: The directory in which to place data files
         """
         super(LSiCorrelatorDriver, self).__init__()
 
@@ -94,6 +95,11 @@ class LSiCorrelatorDriver(Driver):
             PvNames.SIM: 0,
             PvNames.DISABLE: 0
         }
+
+        if os.path.isdir(filepath):
+            self.PVValues[PvNames.FILEPATH] = filepath
+        else:
+            self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
 
         for pv, preset in self.PVValues.items():
             # Write defaults to device
@@ -314,6 +320,7 @@ class LSiCorrelatorDriver(Driver):
             np.savetxt(f, correlation_data, delimiter=',', header='Time Lags,Correlation Function', fmt='%1.4e')
             np.savetxt(f, raw_channel_data, delimiter=',', header='\nTraceA,TraceB', fmt='%1.4e')
 
+
 def serve_forever(ioc_number: int, pv_prefix: str):
     """
     Server the PVs for the remote ioc server
@@ -341,7 +348,8 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     # of how it achieves this.
     ip_address = '127.0.0.1'
     firmware_revision = '4.0.0.3'
-    LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision)
+    filepath = ""
+    LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision, filepath)
 
     ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
     ioc_data_source.insert_ioc_start(ioc_name, os.getpid(), sys.argv[0], STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
