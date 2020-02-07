@@ -73,8 +73,8 @@ STATIC_PV_DATABASE = {
     PvNames.RUNNING: PARAM_FIELDS_BINARY,
     PvNames.SCATTERING_ANGLE: {'type': 'float', 'unit': 'degree', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
     PvNames.SAMPLE_TEMP: {'type': 'float', 'unit': 'C', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
-    PvNames.SOLVENT_VISCOSITY: {'type': 'float', 'unit': '', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
-    PvNames.SOLVENT_REFRACTIVE_INDEX: {'type': 'float', 'unit': 'mPas', 'info_field': {'archive': '', 'INTEREST': 'HIGH'}},
+    PvNames.SOLVENT_VISCOSITY: {'type': 'float', 'unit': 'mPas', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
+    PvNames.SOLVENT_REFRACTIVE_INDEX: {'type': 'float', 'unit': '', 'info_field': {'archive': '', 'INTEREST': 'HIGH'}},
     PvNames.LASER_WAVELENGTH: {'type': 'float', 'unit': 'nm', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
     PvNames.SIM: {'type': 'enum', 'enums': ["NO", "YES"]},
     PvNames.DISABLE: {'type': 'enum', 'enums': ["NO", "YES"]}

@@ -152,9 +152,9 @@ class LSiCorrelatorDriver(Driver):
             value: The new value for the PV
         """
         self.setParam(reason, value)
-        self.setParam("{reason}.VAL".format(reason=reason), value)
 
         if reason in self.SettingPVs:
+            self.setParam("{reason}.VAL".format(reason=reason), value)
             # Non-field PVs also get updated internally
             sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
             try:
@@ -245,16 +245,21 @@ class LSiCorrelatorDriver(Driver):
             Corr = np.asarray(self.device.Correlation)
             Lags = np.asarray(self.device.Lags)
 
-            Lags = Lags[np.isfinite(Corr)]
-            Corr = Corr[np.isfinite(Corr)]
+            if Corr is None:
+                # No data returned, correlator may be disconnected
+                self.update_pv_value(PvNames.CONNECTED, False)
+                self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read from device. Device possibly disconnected", "INVALID")
+            else:
+                Lags = Lags[np.isfinite(Corr)]
+                Corr = Corr[np.isfinite(Corr)]
 
-            trace_A = np.asarray(self.device.TraceChA)
-            trace_B = np.asarray(self.device.TraceChB)
+                trace_A = np.asarray(self.device.TraceChA)
+                trace_B = np.asarray(self.device.TraceChB)
 
-            self.set_array_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
-            self.set_array_pv_value(PvNames.LAGS, Lags)
+                self.set_array_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
+                self.set_array_pv_value(PvNames.LAGS, Lags)
 
-            self.save_data(Corr, Lags, trace_A, trace_B)
+                self.save_data(Corr, Lags, trace_A, trace_B)
 
     def add_repetition_to_filename(self):
         """
