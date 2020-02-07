@@ -314,27 +314,6 @@ class LSiCorrelatorDriver(Driver):
             np.savetxt(f, correlation_data, delimiter=',', header='Time Lags,Correlation Function', fmt='%1.4e')
             np.savetxt(f, raw_channel_data, delimiter=',', header='\nTraceA,TraceB', fmt='%1.4e')
 
-    def set_remote_pv_prefix(self, remote_pv_prefix):
-        """
-        Set the pv prefix for the remote server.
-        Args:
-            remote_pv_prefix: new prefix to use
-
-        Returns:
-
-        """
-        print_and_log("LSiCorrelatorDriver: setting instrument to {} (old: {})"
-                      .format(remote_pv_prefix, self._remote_pv_prefix))
-        self._remote_pv_prefix = remote_pv_prefix
-        self._autosave.write_parameter(AUTOSAVE_REMOTE_PREFIX_NAME, remote_pv_prefix)
-
-        THREADPOOL.submit(self._configuration_monitor.set_remote_pv_prefix, remote_pv_prefix)
-        THREADPOOL.submit(self.restart_all_iocs)
-        THREADPOOL.submit(self._gateway.set_remote_pv_prefix, remote_pv_prefix)
-        self.updatePVs()
-        print_and_log("LSiCorrelatorDriver: Finished setting instrument to {}".format(self._remote_pv_prefix))
-
-
 def serve_forever(ioc_number: int, pv_prefix: str):
     """
     Server the PVs for the remote ioc server
