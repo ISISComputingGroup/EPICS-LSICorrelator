@@ -135,7 +135,11 @@ def get_pv_configs(device):
                                       set_on_device=partial(stop_device, device)),
         PvNames.CORRELATION_FUNCTION: BasicPVConfig,
         PvNames.LAGS: BasicPVConfig,
-        PvNames.REPETITIONS: BasicPVConfig,
+
+        PvNames.REPETITIONS: SettingPVConfig(convert_from_pv=round,
+                                             convert_to_pv=do_nothing,
+                                             set_on_device=do_nothing),
+
         PvNames.CURRENT_REPEAT: BasicPVConfig,
         PvNames.CONNECTED: BoolPVConfig,
         PvNames.RUNNING: BoolPVConfig,
