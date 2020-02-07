@@ -85,7 +85,7 @@ class LSiCorrelatorDriver(Driver):
             PvNames.LAGS: [],
             PvNames.FILENAME: "",
             PvNames.FILEPATH: "",
-            PvNames.CONNECTED: False,
+            PvNames.CONNECTED: self.device.isConnected(),
             PvNames.RUNNING: False,
             PvNames.SCATTERING_ANGLE: 2.2,
             PvNames.SAMPLE_TEMP: 300,
@@ -113,7 +113,7 @@ class LSiCorrelatorDriver(Driver):
     def check_if_connected(self):
         """ Updates the CONNECTED PV with the current connection status """
         while True:
-            self.update_pv_value(PvNames.CONNECTED, self.device.isConnected())
+            self.update_pv_value(PvNames.CONNECTED, self.PVValues[PvNames.CONNECTED])
             sleep(1.0)
 
     def update_error_pv_print_and_log(self, error: str, severity: str = "INFO", src: str = "LSI") -> None:
