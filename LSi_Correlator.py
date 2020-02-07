@@ -109,14 +109,6 @@ class LSiCorrelatorDriver(Driver):
 
         self.updatePVs()
 
-        THREADPOOL.submit(self.check_if_connected)
-
-    def check_if_connected(self):
-        """ Updates the CONNECTED PV with the current connection status """
-        while True:
-            self.update_pv_value(PvNames.CONNECTED, self.PVValues[PvNames.CONNECTED])
-            sleep(1.0)
-
     def update_error_pv_print_and_log(self, error: str, severity: str = "INFO", src: str = "LSI") -> None:
         """
         Updates the error PV with the provided error message, then prints and logs the error
