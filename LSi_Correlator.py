@@ -8,6 +8,7 @@ import traceback
 import six
 
 from pcaspy import SimpleServer, Driver
+from pcaspy.alarm import Alarm, Severity
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
@@ -97,6 +98,9 @@ class LSiCorrelatorDriver(Driver):
             PvNames.DISABLE: 0
         }
 
+        self.alarm_status = Alarm.NO_ALARM
+        self.alarm_severity = Severity.NO_ALARM
+
         if os.path.isdir(filepath):
             self.PVValues[PvNames.FILEPATH] = filepath
         else:
@@ -104,7 +108,7 @@ class LSiCorrelatorDriver(Driver):
 
         for pv, preset in self.PVValues.items():
             # Write defaults to device
-            print('setting {} to {}', pv, preset)
+            print("setting {} to {}".format(pv, preset))
             self.update_pv_value(pv, self.SettingPVs[pv].convert_to_pv(preset))
 
         self.updatePVs()
@@ -122,13 +126,24 @@ class LSiCorrelatorDriver(Driver):
         self.update_pv_value(PvNames.ERRORMSG, error)
         print_and_log(error, severity, src)
 
-    def set_disconnected_alarms(self, state: bool):
-        """ Sets disconnected alarms if state is True"""
-        pass
+    def set_disconnected_alarms(self, in_alarm: bool):
+        """ Sets disconnected alarms if in_alarm is True """
+        if in_alarm:
+            severity = Severity.INVALID_ALARM
+            status = Alarm.TIMEOUT_ALARM
+        else:
+            severity = Severity.INVALID_ALARM
+            status = Alarm.TIMEOUT_ALARM
+
+        self.alarm_status = status
+        self.alarm_severity = severity
+
+        for pv in self.SettingPVs.keys():
+            self.setParamStatus(pv, status, severity)
 
     def get_pv_value(self, reason):
         """
-        Helper function returns the value of a PV held in this driver
+        Returns the value of a PV held in this driver
 
         Args:
             reason (str): The name of the PV to get the value of
@@ -155,6 +170,7 @@ class LSiCorrelatorDriver(Driver):
             value: The new value for the PV
         """
         self.setParam(reason, value)
+        self.setParamStatus(reason, self.alarm_status, self.alarm_severity)
 
         if reason in self.SettingPVs:
             self.setParam("{reason}.VAL".format(reason=reason), value)
@@ -269,7 +285,8 @@ class LSiCorrelatorDriver(Driver):
             if self.device.Correlation is None:
                 # No data returned, correlator may be disconnected
                 self.update_pv_value(PvNames.CONNECTED, False)
-                self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could have disconnected", "INVALID")
+                self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected", "INVALID")
+                self.set_disconnected_alarms(True)
             else:
                 Corr, Lags, trace_A, trace_B = self.get_data_as_arrays()
 
