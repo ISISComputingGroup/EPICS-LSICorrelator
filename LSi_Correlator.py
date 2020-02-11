@@ -28,6 +28,7 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
+from pathlib import Path
 
 
 def _error_handler(func):
@@ -169,15 +170,15 @@ class LSiCorrelatorDriver(Driver):
             reason (str): The name of the PV to set
             value: The new value for the PV
         """
-        self.setParam(reason, value)
-        self.setParamStatus(reason, self.alarm_status, self.alarm_severity)
 
         if reason in self.SettingPVs:
-            self.setParam("{reason}.VAL".format(reason=reason), value)
             # Non-field PVs also get updated internally
             sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
+            sanitised_value_for_pv = self.SettingPVs[reason].convert_to_pv(sanitised_value)
             try:
                 self.SettingPVs[reason].set_on_device(sanitised_value)
+                self.setParam(reason, sanitised_value_for_pv)
+                self.setParam("{reason}.VAL".format(reason=reason), sanitised_value_for_pv)
             except ValueError as err:
                 self.update_error_pv_print_and_log("Error setting PV {pv} to {value}:".format(pv=reason, value=value))
                 self.update_error_pv_print_and_log("{}".format(err))
@@ -186,6 +187,10 @@ class LSiCorrelatorDriver(Driver):
             else:
                 # Update local variable if setting has worked
                 self.PVValues[reason] = sanitised_value
+        else:
+            # Update PV with given value
+            self.setParam(reason, value)
+            self.setParamStatus(reason, self.alarm_status, self.alarm_severity)
 
     def set_array_pv_value(self, reason, value):
         """
@@ -376,8 +381,11 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     filepath = ""
     LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision, filepath)
 
+    # Clean up sys.argv path
+    exepath = str(Path(sys.argv[0]))
+
     ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
-    ioc_data_source.insert_ioc_start(ioc_name, os.getpid(), sys.argv[0], STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
+    ioc_data_source.insert_ioc_start(ioc_name, os.getpid(), exepath, STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
 
     try:
         while True:
