@@ -4,6 +4,7 @@ import argparse
 import sys
 import os
 import traceback
+from io import StringIO
 
 import six
 
@@ -29,6 +30,7 @@ from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
 from pathlib import Path
+from file_format import FILE_SCHEME
 
 
 def _error_handler(func):
@@ -298,7 +300,7 @@ class LSiCorrelatorDriver(Driver):
                 self.set_array_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
                 self.set_array_pv_value(PvNames.LAGS, Lags)
 
-                self.save_data(Corr, Lags, trace_A, trace_B)
+                self.save_data(Corr, Lags, trace_A, trace_B, np.zeros(trace_A.shape))
 
     def add_timestamp_to_filename(self):
         """
@@ -311,7 +313,7 @@ class LSiCorrelatorDriver(Driver):
 
         return "{filepath}/{filename}_{timestamp}".format(filepath=filepath, filename=filename, timestamp=timestamp)
 
-    def save_data(self, correlation, time_lags, trace_A, trace_B):
+    def save_data(self, correlation, time_lags, trace_A, trace_B, count_rates):
         """
         Write the correlation function and time lags to file.
 
@@ -323,7 +325,7 @@ class LSiCorrelatorDriver(Driver):
         filename = self.add_timestamp_to_filename()
 
         correlation_data = np.vstack((time_lags, correlation)).T
-        raw_channel_data = np.vstack((trace_A, trace_B)).T
+        raw_channel_data = np.vstack((count_rates, trace_A, trace_B)).T
         metadata_variables = [
             PvNames.SCATTERING_ANGLE,
             PvNames.SAMPLE_TEMP,
@@ -347,8 +349,14 @@ class LSiCorrelatorDriver(Driver):
             for metadata_variable in metadata_variables:
                 f.write("# {variable}: {value}\n".format(variable=metadata_variable,
                                                          value=self.get_pv_value(metadata_variable)))
-            np.savetxt(f, correlation_data, delimiter=',', header='Time Lags,Correlation Function', fmt='%1.4e')
-            np.savetxt(f, raw_channel_data, delimiter=',', header='\nTraceA,TraceB', fmt='%1.4e')
+            correlation_file = StringIO()
+            np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.4e')
+            correlation_string = correlation_file.getvalue()
+            raw_channel_data_file = StringIO()
+            np.savetxt(raw_channel_data_file, raw_channel_data, delimiter='\t', fmt='%1.4e')
+            raw_channel_data_string = raw_channel_data_file.getvalue()
+
+            f.write(FILE_SCHEME.format(correlation_function=correlation_string, count_rate_history=raw_channel_data_string))
 
 
 def serve_forever(ioc_number: int, pv_prefix: str):
