@@ -1,4 +1,4 @@
-FILE_SCHEME = """{date}\t{time}
+FILE_SCHEME = """{datetime}
 Pseudo Cross Correlation
 Scattering angle:\t{scattering_angle}
 Duration (s):\t{duration}
@@ -6,7 +6,7 @@ Wavelength (nm):\t{wavelength}
 Refractive index:\t{refractive_index}
 Viscosity (mPas):\t{viscosity}
 Temperature (K):\t{temperature}
-Laser intensity (mW):\t{laser_intensity}
+Laser intensity (mW):\t0.0
 Average Count rate A (kHz):\t{avg_count_A}
 Average Count rate B (kHz):\t{avg_count_B}
 Intercept:\t1.0000
