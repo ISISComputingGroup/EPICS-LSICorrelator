@@ -1,14 +1,14 @@
 FILE_SCHEME = """{datetime}
 Pseudo Cross Correlation
-Scattering angle:\t{scattering_angle}
-Duration (s):\t{duration}
-Wavelength (nm):\t{wavelength}
-Refractive index:\t{refractive_index}
-Viscosity (mPas):\t{viscosity}
-Temperature (K):\t{temperature}
+Scattering angle:\t{scattering_angle:.1f}
+Duration (s):\t{duration:d}
+Wavelength (nm):\t{wavelength:.1f}
+Refractive index:\t{refractive_index:.3f}
+Viscosity (mPas):\t{viscosity:.3f}
+Temperature (K):\t{temperature:.1f}
 Laser intensity (mW):\t0.0
-Average Count rate A (kHz):\t{avg_count_A}
-Average Count rate B (kHz):\t{avg_count_B}
+Average Count rate A (kHz):\t{avg_count_A:.1f}
+Average Count rate B (kHz):\t{avg_count_B:.1f}
 Intercept:\t1.0000
 Cumulant 1st\t-Inf
 Cumulant 2nd\t-Inf\tNaN
