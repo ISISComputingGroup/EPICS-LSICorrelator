@@ -14,10 +14,10 @@ import numpy as np
 
 from time import sleep
 from datetime import datetime
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
-sys.path.insert(2, 'C:\\Instrument\\Apps\\EPICS\\ISIS\\inst_servers\\master\\')
+sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
@@ -28,7 +28,6 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
-from pathlib import Path
 
 
 def _error_handler(func):
