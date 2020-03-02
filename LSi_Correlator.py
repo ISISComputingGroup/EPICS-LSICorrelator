@@ -29,8 +29,8 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
-from pathlib import Path
 from file_format import FILE_SCHEME
+from pathlib import Path
 
 
 def _error_handler(func):
@@ -49,6 +49,9 @@ def get_base_pv(reason: str):
 
 
 THREADPOOL = ThreadPoolExecutor()
+
+# Magic number, seems to be time between measurments.
+DELTA_T = 0.0524288
 
 
 class LSiCorrelatorDriver(Driver):
@@ -284,6 +287,8 @@ class LSiCorrelatorDriver(Driver):
 
             while self.device.MeasurementOn():
                 sleep(0.5)
+                # Time axis is number of data points collected * scaling factor
+                time_trace = np.arange(len(self.device.TraceChA))*DELTA_T
                 self.update_pv_value(PvNames.RUNNING, True)
                 self.device.update()
 
@@ -300,7 +305,7 @@ class LSiCorrelatorDriver(Driver):
                 self.set_array_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
                 self.set_array_pv_value(PvNames.LAGS, Lags)
 
-                self.save_data(Corr, Lags, trace_A, trace_B, np.zeros(trace_A.shape))
+                self.save_data(Corr, Lags, trace_A, trace_B, time_trace)
 
     def add_timestamp_to_filename(self):
         """
@@ -313,7 +318,7 @@ class LSiCorrelatorDriver(Driver):
 
         return "{filepath}/{filename}_{timestamp}".format(filepath=filepath, filename=filename, timestamp=timestamp)
 
-    def save_data(self, correlation, time_lags, trace_A, trace_B, count_rates):
+    def save_data(self, correlation, time_lags, trace_A, trace_B, trace_time):
         """
         Write the correlation function and time lags to file.
 
@@ -325,39 +330,31 @@ class LSiCorrelatorDriver(Driver):
         filename = self.add_timestamp_to_filename()
 
         correlation_data = np.vstack((time_lags, correlation)).T
-        raw_channel_data = np.vstack((count_rates, trace_A, trace_B)).T
-        metadata_variables = [
-            PvNames.SCATTERING_ANGLE,
-            PvNames.SAMPLE_TEMP,
-            PvNames.SOLVENT_VISCOSITY,
-            PvNames.SOLVENT_REFRACTIVE_INDEX,
-            PvNames.LASER_WAVELENGTH,
-            PvNames.CORRELATIONTYPE,
-            PvNames.NORMALIZATION,
-            PvNames.MEASUREMENTDURATION,
-            PvNames.SWAPCHANNELS,
-            PvNames.SAMPLINGTIMEMULTIT,
-            PvNames.TRANSFERRATE,
-            PvNames.OVERLOADLIMIT,
-            PvNames.OVERLOADINTERVAL,
-            PvNames.REPETITIONS,
-            PvNames.CURRENT_REPEAT
-        ]
+        raw_channel_data = np.vstack((trace_time, trace_A, trace_B)).T
 
         with open(filename, 'w') as f:
-
-            for metadata_variable in metadata_variables:
-                f.write("# {variable}: {value}\n".format(variable=metadata_variable,
-                                                         value=self.get_pv_value(metadata_variable)))
             correlation_file = StringIO()
-            np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.4e')
+            np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.6e')
             correlation_string = correlation_file.getvalue()
             raw_channel_data_file = StringIO()
-            np.savetxt(raw_channel_data_file, raw_channel_data, delimiter='\t', fmt='%1.4e')
+            np.savetxt(raw_channel_data_file, raw_channel_data, delimiter='\t', fmt='%.6f')
             raw_channel_data_string = raw_channel_data_file.getvalue()
 
-            f.write(FILE_SCHEME.format(correlation_function=correlation_string, count_rate_history=raw_channel_data_string))
+            save_file = FILE_SCHEME.format(
+                datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
+                scattering_angle=self.get_pv_value(PvNames.SCATTERING_ANGLE),
+                duration=self.get_pv_value(PvNames.MEASUREMENTDURATION),
+                wavelength=self.get_pv_value(PvNames.LASER_WAVELENGTH),
+                refractive_index=self.get_pv_value(PvNames.SOLVENT_REFRACTIVE_INDEX),
+                viscosity=self.get_pv_value(PvNames.SOLVENT_VISCOSITY),
+                temperature=self.get_pv_value(PvNames.SAMPLE_TEMP),
+                avg_count_A=np.mean(trace_A),
+                avg_count_B=np.mean(trace_B),
+                correlation_function=correlation_string,
+                count_rate_history=raw_channel_data_string
+            )
 
+            f.write(save_file)
 
 def serve_forever(ioc_number: int, pv_prefix: str):
     """
