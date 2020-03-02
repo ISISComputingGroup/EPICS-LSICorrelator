@@ -9,21 +9,6 @@ from pvdb import STATIC_PV_DATABASE, PvNames
 g.set_instrument(None)
 
 
-def get_default_filename():
-    """ Returns a default filename from the current run number and title """
-    return "{run_number}_{title}".format(run_number=g.get_runnumber(), title=g.get_title())
-
-
-def check_filename_valid(filename):
-    """ Removes non-ascii and other characters which prevent using the supplied filename """
-    if filename == "":
-        filename = get_default_filename()
-
-    # Remove anything other than alphanumerics and dashes/underscores
-    parsed_filename = [char for char in filename if char.isalnum() or char in '-_']
-    return ''.join(parsed_filename)
-
-
 def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
     """
     Takes the value of the enum from the PV and returns the LSI_Param associated with this value
@@ -121,13 +106,7 @@ def get_pv_configs(device):
 
         PvNames.ERRORMSG: BasicPVConfig,
 
-        PvNames.FILENAME: SettingPVConfig(convert_from_pv=check_filename_valid,
-                                          convert_to_pv=check_filename_valid,
-                                          set_on_device=do_nothing),
-
-        PvNames.FILEPATH: SettingPVConfig(convert_from_pv=do_nothing,
-                                          convert_to_pv=do_nothing,
-                                          set_on_device=do_nothing),
+        PvNames.FILENAME: BasicPVConfig,
 
         PvNames.START: BoolPVConfig,
         PvNames.STOP: SettingPVConfig(convert_from_pv=do_nothing,

@@ -31,6 +31,7 @@ from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
 from file_format import FILE_SCHEME
 from pathlib import Path
+from genie_python import genie as g
 
 
 def _error_handler(func):
@@ -92,7 +93,6 @@ class LSiCorrelatorDriver(Driver):
             PvNames.CORRELATION_FUNCTION: [],
             PvNames.LAGS: [],
             PvNames.FILENAME: "",
-            PvNames.FILEPATH: "",
             PvNames.CONNECTED: self.device.isConnected(),
             PvNames.RUNNING: False,
             PvNames.SCATTERING_ANGLE: 2.2,
@@ -103,6 +103,8 @@ class LSiCorrelatorDriver(Driver):
             PvNames.SIM: 0,
             PvNames.DISABLE: 0
         }
+
+        self.filepath = filepath
 
         self.alarm_status = Alarm.NO_ALARM
         self.alarm_severity = Severity.NO_ALARM
@@ -270,6 +272,12 @@ class LSiCorrelatorDriver(Driver):
 
         return Corr, Lags, trace_A, trace_B
 
+    def get_default_filename(self):
+        """ Returns a default filename from the current run number and title """
+        filename = "{instrument}{run_number}_{title}".format(instrument=g.get_instrument(), run_number=g.get_runnumber(), title=g.get_title())
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+        return "{filepath}{filename}_{timestamp}.txt".format(filepath=self.filepath, filename=filename, timestamp=timestamp)
+
     @_error_handler
     def take_data(self):
         """
@@ -282,6 +290,7 @@ class LSiCorrelatorDriver(Driver):
 
         for repeat in range(1, self.PVValues[PvNames.REPETITIONS]+1):
             self.update_pv_value(PvNames.CURRENT_REPEAT, repeat)
+            self.update_pv_value(PvNames.FILENAME, self.get_default_filename())
 
             self.device.start()
 
