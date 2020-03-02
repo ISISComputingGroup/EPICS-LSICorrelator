@@ -5,19 +5,28 @@ from typing import Dict
 from pcaspy.alarm import AlarmStrings, SeverityStrings
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
-from server_common.utilities import char_waveform
 
 sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
 from LSI import LSI_Param
 
-
-PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"], 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
 INT_AS_FLOAT_PV = {'type': 'float', 'prec': 0, 'value': 0.0, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
 CHAR_PV_FIELDS = {'type': 'char', 'count': 400, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
 # Truncate as enum can only contain 16 states
 ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStrings[:16]}
 ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
+
+
+def float_pv_with_unit(unit: str):
+    """
+    Returns a float PV definition with given unit filled in.
+    Args:
+        unit: The PV's unit
+    Returns:
+        pv_definition (Dict): Contains the fields which define the PV
+    """
+
+    return {'type': 'float', 'unit': unit, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
 
 
 class PvNames(object):
@@ -71,11 +80,11 @@ STATIC_PV_DATABASE = {
     PvNames.CURRENT_REPEAT: INT_AS_FLOAT_PV,
     PvNames.CONNECTED: PARAM_FIELDS_BINARY,
     PvNames.RUNNING: PARAM_FIELDS_BINARY,
-    PvNames.SCATTERING_ANGLE: {'type': 'float', 'unit': 'degree', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
-    PvNames.SAMPLE_TEMP: {'type': 'float', 'unit': 'C', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
-    PvNames.SOLVENT_VISCOSITY: {'type': 'float', 'unit': 'mPas', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
-    PvNames.SOLVENT_REFRACTIVE_INDEX: {'type': 'float', 'unit': '', 'info_field': {'archive': '', 'INTEREST': 'HIGH'}},
-    PvNames.LASER_WAVELENGTH: {'type': 'float', 'unit': 'nm', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
+    PvNames.SCATTERING_ANGLE: float_pv_with_unit('degree'),
+    PvNames.SAMPLE_TEMP: float_pv_with_unit('K'),
+    PvNames.SOLVENT_VISCOSITY: float_pv_with_unit('mPas'),
+    PvNames.SOLVENT_REFRACTIVE_INDEX: float_pv_with_unit(''),
+    PvNames.LASER_WAVELENGTH: float_pv_with_unit('nm'),
     PvNames.SIM: {'type': 'enum', 'enums': ["NO", "YES"]},
     PvNames.DISABLE: {'type': 'enum', 'enums': ["NO", "YES"]}
 }
