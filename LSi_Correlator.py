@@ -110,7 +110,7 @@ class LSiCorrelatorDriver(Driver):
         self.alarm_severity = Severity.NO_ALARM
 
         if os.path.isdir(filepath):
-            self.PVValues[PvNames.FILEPATH] = filepath
+            self.PVValues[PvNames.FILENAME] = self.get_default_filename()
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
 
@@ -276,7 +276,7 @@ class LSiCorrelatorDriver(Driver):
         """ Returns a default filename from the current run number and title """
         filename = "{instrument}{run_number}_{title}".format(instrument=g.get_instrument(), run_number=g.get_runnumber(), title=g.get_title())
         timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-        return "{filepath}{filename}_{timestamp}.txt".format(filepath=self.filepath, filename=filename, timestamp=timestamp)
+        return "{filename}_{timestamp}".format(filename=filename, timestamp=timestamp)
 
     @_error_handler
     def take_data(self):
@@ -316,17 +316,6 @@ class LSiCorrelatorDriver(Driver):
 
                 self.save_data(Corr, Lags, trace_A, trace_B, time_trace)
 
-    def add_timestamp_to_filename(self):
-        """
-        Adds a timestamp to the current filepath/filename
-        """
-
-        filepath = self.get_pv_value(PvNames.FILEPATH)
-        filename = self.get_pv_value(PvNames.FILENAME)
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-
-        return "{filepath}/{filename}_{timestamp}".format(filepath=filepath, filename=filename, timestamp=timestamp)
-
     def save_data(self, correlation, time_lags, trace_A, trace_B, trace_time):
         """
         Write the correlation function and time lags to file.
@@ -336,12 +325,13 @@ class LSiCorrelatorDriver(Driver):
             time_lags (float array): The time lags
         """
 
-        filename = self.add_timestamp_to_filename()
+        filename = self.get_pv_value(PvNames.FILENAME)
 
         correlation_data = np.vstack((time_lags, correlation)).T
         raw_channel_data = np.vstack((trace_time, trace_A, trace_B)).T
 
-        with open(filename, 'w') as f:
+        with open("C:\\Data\\"+str(filename)+".txt", 'w+') as archived_file,\
+         open("C:\\LSICorrFiles\\"+str(filename)+".dat", 'w+') as dat_file:
             correlation_file = StringIO()
             np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.6e')
             correlation_string = correlation_file.getvalue()
@@ -363,7 +353,10 @@ class LSiCorrelatorDriver(Driver):
                 count_rate_history=raw_channel_data_string
             )
 
-            f.write(save_file)
+
+
+            archived_file.write(save_file)
+            dat_file.write(save_file)
 
 def serve_forever(ioc_number: int, pv_prefix: str):
     """
@@ -392,7 +385,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     # of how it achieves this.
     ip_address = '127.0.0.1'
     firmware_revision = '4.0.0.3'
-    filepath = ""
+    filepath = "C:\\Data"
     LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision, filepath)
 
     # Clean up sys.argv path
