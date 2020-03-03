@@ -33,6 +33,7 @@ from file_format import FILE_SCHEME
 from pathlib import Path
 from genie_python import genie as g
 
+DATA_DIR = "C:\\Data\\"
 
 def _error_handler(func):
     @six.wraps(func)
@@ -104,7 +105,7 @@ class LSiCorrelatorDriver(Driver):
             PvNames.DISABLE: 0
         }
 
-        self.filepath = filepath
+        self.user_filepath = filepath
 
         self.alarm_status = Alarm.NO_ALARM
         self.alarm_severity = Severity.NO_ALARM
@@ -272,12 +273,6 @@ class LSiCorrelatorDriver(Driver):
 
         return Corr, Lags, trace_A, trace_B
 
-    def get_default_filename(self):
-        """ Returns a default filename from the current run number and title """
-        filename = "{instrument}{run_number}_{title}".format(instrument=g.get_instrument(), run_number=g.get_runnumber(), title=g.get_title())
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-        return "{filename}_{timestamp}".format(filename=filename, timestamp=timestamp)
-
     @_error_handler
     def take_data(self):
         """
@@ -316,6 +311,22 @@ class LSiCorrelatorDriver(Driver):
 
                 self.save_data(Corr, Lags, trace_A, trace_B, time_trace)
 
+    def get_archive_filename(self):
+        """
+        Returns a filename which the archive data file will be saved with
+        """
+        filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+        return filename.format(instrument=g.get_instrument(), run_number=g.get_run_number(), timestamp=timestamp)
+
+    def get_user_filename(self):
+        """ Returns a default filename from the current run number and title """
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+        filename = "{user_filename}_{timestamp}.dat".format(user_filename=self.get_pv_value(PvNames.FILENAME),
+                                                            timestamp=timestamp)
+
+        return filename
+
     def save_data(self, correlation, time_lags, trace_A, trace_B, trace_time):
         """
         Write the correlation function and time lags to file.
@@ -324,39 +335,37 @@ class LSiCorrelatorDriver(Driver):
             correlation (float array): The correlation function
             time_lags (float array): The time lags
         """
-
-        filename = self.get_pv_value(PvNames.FILENAME)
+        user_filename = os.path.join(self.filepath, self.get_default_filename())
+        archive_filename = os.path.join(DATA_DIR, self.get_archive_filename())
 
         correlation_data = np.vstack((time_lags, correlation)).T
         raw_channel_data = np.vstack((trace_time, trace_A, trace_B)).T
 
-        with open("C:\\Data\\"+str(filename)+".txt", 'w+') as archived_file,\
-         open("C:\\LSICorrFiles\\"+str(filename)+".dat", 'w+') as dat_file:
-            correlation_file = StringIO()
-            np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.6e')
-            correlation_string = correlation_file.getvalue()
-            raw_channel_data_file = StringIO()
-            np.savetxt(raw_channel_data_file, raw_channel_data, delimiter='\t', fmt='%.6f')
-            raw_channel_data_string = raw_channel_data_file.getvalue()
+        for filename in [user_filename, archive_filename]:
+            with open(filename, 'w+') as dat_file:
+                correlation_file = StringIO()
+                np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.6e')
+                correlation_string = correlation_file.getvalue()
+                raw_channel_data_file = StringIO()
+                np.savetxt(raw_channel_data_file, raw_channel_data, delimiter='\t', fmt='%.6f')
+                raw_channel_data_string = raw_channel_data_file.getvalue()
 
-            save_file = FILE_SCHEME.format(
-                datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
-                scattering_angle=self.get_pv_value(PvNames.SCATTERING_ANGLE),
-                duration=self.get_pv_value(PvNames.MEASUREMENTDURATION),
-                wavelength=self.get_pv_value(PvNames.LASER_WAVELENGTH),
-                refractive_index=self.get_pv_value(PvNames.SOLVENT_REFRACTIVE_INDEX),
-                viscosity=self.get_pv_value(PvNames.SOLVENT_VISCOSITY),
-                temperature=self.get_pv_value(PvNames.SAMPLE_TEMP),
-                avg_count_A=np.mean(trace_A),
-                avg_count_B=np.mean(trace_B),
-                correlation_function=correlation_string,
-                count_rate_history=raw_channel_data_string
-            )
+                save_file = FILE_SCHEME.format(
+                    datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
+                    scattering_angle=self.get_pv_value(PvNames.SCATTERING_ANGLE),
+                    duration=self.get_pv_value(PvNames.MEASUREMENTDURATION),
+                    wavelength=self.get_pv_value(PvNames.LASER_WAVELENGTH),
+                    refractive_index=self.get_pv_value(PvNames.SOLVENT_REFRACTIVE_INDEX),
+                    viscosity=self.get_pv_value(PvNames.SOLVENT_VISCOSITY),
+                    temperature=self.get_pv_value(PvNames.SAMPLE_TEMP),
+                    avg_count_A=np.mean(trace_A),
+                    avg_count_B=np.mean(trace_B),
+                    correlation_function=correlation_string,
+                    count_rate_history=raw_channel_data_string
+                )
 
-
-
-            archived_file.write(save_file)
             dat_file.write(save_file)
+
 
 def serve_forever(ioc_number: int, pv_prefix: str):
     """
@@ -385,7 +394,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     # of how it achieves this.
     ip_address = '127.0.0.1'
     firmware_revision = '4.0.0.3'
-    filepath = "C:\\Data"
+    filepath = ""
     LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision, filepath)
 
     # Clean up sys.argv path
