@@ -33,7 +33,8 @@ from file_format import FILE_SCHEME
 from pathlib import Path
 from genie_python import genie as g
 
-DATA_DIR = "C:\\Data\\"
+DATA_DIR = ""
+
 
 def _error_handler(func):
     @six.wraps(func)
@@ -55,6 +56,14 @@ THREADPOOL = ThreadPoolExecutor()
 # Magic number, seems to be time between measurments.
 DELTA_T = 0.0524288
 
+
+def remove_non_ascii(text_to_check):
+    """
+    Removes non-ascii and other characters from the supplied text
+    """
+    # Remove anything other than alphanumerics and dashes/underscores
+    parsed_text = [char for char in text_to_check if char.isalnum() or char in '-_']
+    return ''.join(parsed_text)
 
 class LSiCorrelatorDriver(Driver):
     """
@@ -93,7 +102,7 @@ class LSiCorrelatorDriver(Driver):
             PvNames.CURRENT_REPEAT: 0,
             PvNames.CORRELATION_FUNCTION: [],
             PvNames.LAGS: [],
-            PvNames.FILENAME: "",
+            PvNames.EXPERIMENTNAME: "",
             PvNames.CONNECTED: self.device.isConnected(),
             PvNames.RUNNING: False,
             PvNames.SCATTERING_ANGLE: 2.2,
@@ -110,8 +119,10 @@ class LSiCorrelatorDriver(Driver):
         self.alarm_status = Alarm.NO_ALARM
         self.alarm_severity = Severity.NO_ALARM
 
+        THREADPOOL.submit(self.update_output_file)
+
         if os.path.isdir(filepath):
-            self.PVValues[PvNames.FILENAME] = self.get_default_filename()
+            self.update_pv_value(PvNames.OUTPUTFILE, self.get_user_filename())
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
 
@@ -121,6 +132,15 @@ class LSiCorrelatorDriver(Driver):
             self.update_pv_value(pv, self.SettingPVs[pv].convert_to_pv(preset))
 
         self.updatePVs()
+
+    def update_output_file(self):
+        """
+        Updates the PV containing the name of the user's data file
+        """
+        while True:
+            filename = self.get_user_filename()
+            self.update_pv_value(PvNames.OUTPUTFILE, filename)
+            sleep(10)
 
     def update_error_pv_print_and_log(self, error: str, severity: str = "INFO", src: str = "LSI") -> None:
         """
@@ -199,6 +219,8 @@ class LSiCorrelatorDriver(Driver):
             # Update PV with given value
             self.setParam(reason, value)
             self.setParamStatus(reason, self.alarm_status, self.alarm_severity)
+
+        self.updatePVs()
 
     def set_array_pv_value(self, reason, value):
         """
@@ -285,7 +307,6 @@ class LSiCorrelatorDriver(Driver):
 
         for repeat in range(1, self.PVValues[PvNames.REPETITIONS]+1):
             self.update_pv_value(PvNames.CURRENT_REPEAT, repeat)
-            self.update_pv_value(PvNames.FILENAME, self.get_default_filename())
 
             self.device.start()
 
@@ -317,13 +338,22 @@ class LSiCorrelatorDriver(Driver):
         """
         filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
         timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-        return filename.format(instrument=g.get_instrument(), run_number=g.get_run_number(), timestamp=timestamp)
+        return filename.format(instrument=g.get_instrument(), run_number=g.get_runnumber(), timestamp=timestamp)
 
     def get_user_filename(self):
         """ Returns a default filename from the current run number and title """
+        experiment_name = self.get_pv_value(PvNames.EXPERIMENTNAME)
+        run_number = g.get_runnumber()
         timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-        filename = "{user_filename}_{timestamp}.dat".format(user_filename=self.get_pv_value(PvNames.FILENAME),
-                                                            timestamp=timestamp)
+
+        if experiment_name == "":
+            filename = "{run_number}_{title}_{timestamp}.dat".format(
+                run_number=run_number, title=remove_non_ascii(g.get_title()), timestamp=timestamp
+            )
+        else:
+            filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
+                run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
+            )
 
         return filename
 
@@ -335,36 +365,37 @@ class LSiCorrelatorDriver(Driver):
             correlation (float array): The correlation function
             time_lags (float array): The time lags
         """
-        user_filename = os.path.join(self.filepath, self.get_default_filename())
+        user_filename = os.path.join(self.user_filepath, self.get_user_filename())
         archive_filename = os.path.join(DATA_DIR, self.get_archive_filename())
 
         correlation_data = np.vstack((time_lags, correlation)).T
         raw_channel_data = np.vstack((trace_time, trace_A, trace_B)).T
 
+        # Populate the save file as a string
+        correlation_file = StringIO()
+        np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.6e')
+        correlation_string = correlation_file.getvalue()
+        raw_channel_data_file = StringIO()
+        np.savetxt(raw_channel_data_file, raw_channel_data, delimiter='\t', fmt='%.6f')
+        raw_channel_data_string = raw_channel_data_file.getvalue()
+
+        save_file = FILE_SCHEME.format(
+            datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
+            scattering_angle=self.get_pv_value(PvNames.SCATTERING_ANGLE),
+            duration=self.get_pv_value(PvNames.MEASUREMENTDURATION),
+            wavelength=self.get_pv_value(PvNames.LASER_WAVELENGTH),
+            refractive_index=self.get_pv_value(PvNames.SOLVENT_REFRACTIVE_INDEX),
+            viscosity=self.get_pv_value(PvNames.SOLVENT_VISCOSITY),
+            temperature=self.get_pv_value(PvNames.SAMPLE_TEMP),
+            avg_count_A=np.mean(trace_A),
+            avg_count_B=np.mean(trace_B),
+            correlation_function=correlation_string,
+            count_rate_history=raw_channel_data_string
+        )
+
         for filename in [user_filename, archive_filename]:
             with open(filename, 'w+') as dat_file:
-                correlation_file = StringIO()
-                np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.6e')
-                correlation_string = correlation_file.getvalue()
-                raw_channel_data_file = StringIO()
-                np.savetxt(raw_channel_data_file, raw_channel_data, delimiter='\t', fmt='%.6f')
-                raw_channel_data_string = raw_channel_data_file.getvalue()
-
-                save_file = FILE_SCHEME.format(
-                    datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
-                    scattering_angle=self.get_pv_value(PvNames.SCATTERING_ANGLE),
-                    duration=self.get_pv_value(PvNames.MEASUREMENTDURATION),
-                    wavelength=self.get_pv_value(PvNames.LASER_WAVELENGTH),
-                    refractive_index=self.get_pv_value(PvNames.SOLVENT_REFRACTIVE_INDEX),
-                    viscosity=self.get_pv_value(PvNames.SOLVENT_VISCOSITY),
-                    temperature=self.get_pv_value(PvNames.SAMPLE_TEMP),
-                    avg_count_A=np.mean(trace_A),
-                    avg_count_B=np.mean(trace_B),
-                    correlation_function=correlation_string,
-                    count_rate_history=raw_channel_data_string
-                )
-
-            dat_file.write(save_file)
+                dat_file.write(save_file)
 
 
 def serve_forever(ioc_number: int, pv_prefix: str):

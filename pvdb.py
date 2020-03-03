@@ -30,7 +30,8 @@ class PvNames(object):
     OVERLOADLIMIT = "OVERLOADLIMIT"
     OVERLOADINTERVAL = "OVERLOADINTERVAL"
     ERRORMSG = "ERRORMSG"
-    FILENAME = "FILENAME"
+    EXPERIMENTNAME = "EXPERIMENTNAME"
+    OUTPUTFILE = "OUTPUTFILE"
     START = "START"
     STOP = "STOP"
     CORRELATION_FUNCTION = "CORRELATION_FUNCTION"
@@ -60,7 +61,8 @@ STATIC_PV_DATABASE = {
     PvNames.OVERLOADLIMIT: {'type': 'float', 'prec': 0, 'value': 0.0, 'unit': 'Mcps'},
     PvNames.OVERLOADINTERVAL: INT_AS_FLOAT_PV,
     PvNames.ERRORMSG: CHAR_PV_FIELDS,
-    PvNames.FILENAME: CHAR_PV_FIELDS,
+    PvNames.EXPERIMENTNAME: CHAR_PV_FIELDS,
+    PvNames.OUTPUTFILE: CHAR_PV_FIELDS,
     PvNames.START: PARAM_FIELDS_BINARY,
     PvNames.STOP: PARAM_FIELDS_BINARY,
     PvNames.CORRELATION_FUNCTION: {'type': 'float', 'count': 400},
@@ -70,7 +72,7 @@ STATIC_PV_DATABASE = {
     PvNames.CONNECTED: PARAM_FIELDS_BINARY,
     PvNames.RUNNING: PARAM_FIELDS_BINARY,
     PvNames.SCATTERING_ANGLE: {'type': 'float', 'unit': 'degree', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
-    PvNames.SAMPLE_TEMP: {'type': 'float', 'unit': 'C', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
+    PvNames.SAMPLE_TEMP: {'type': 'float', 'unit': 'K', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
     PvNames.SOLVENT_VISCOSITY: {'type': 'float', 'unit': 'mPas', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
     PvNames.SOLVENT_REFRACTIVE_INDEX: {'type': 'float', 'unit': '', 'info_field': {'archive': '', 'INTEREST': 'HIGH'}},
     PvNames.LASER_WAVELENGTH: {'type': 'float', 'unit': 'nm', 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}},
