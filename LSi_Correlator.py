@@ -132,8 +132,8 @@ class LSiCorrelatorDriver(Driver):
             severity = Severity.INVALID_ALARM
             status = Alarm.TIMEOUT_ALARM
         else:
-            severity = Severity.INVALID_ALARM
-            status = Alarm.TIMEOUT_ALARM
+            severity = Severity.NO_ALARM
+            status = Alarm.NO_ALARM
 
         self.alarm_status = status
         self.alarm_severity = severity
