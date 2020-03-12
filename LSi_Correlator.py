@@ -108,7 +108,7 @@ class LSiCorrelatorDriver(Driver):
 
         for pv, preset in self.PVValues.items():
             # Write defaults to device
-            print("setting {} to {}".format(pv, preset))
+            print_and_log("setting {} to {}".format(pv, preset))
             self.update_pv_value(pv, self.SettingPVs[pv].convert_to_pv(preset))
 
         self.updatePVs()
@@ -253,16 +253,16 @@ class LSiCorrelatorDriver(Driver):
             trace_A (ndarray): Raw photon counts for channel A
             trace_B (ndarray): Raw photon counts for channel B
         """
-        Corr = np.asarray(self.device.Correlation)
-        Lags = np.asarray(self.device.Lags)
+        corr = np.asarray(self.device.Correlation)
+        lags = np.asarray(self.device.Lags)
 
-        Lags = Lags[np.isfinite(Corr)]
-        Corr = Corr[np.isfinite(Corr)]
+        lags = lags[np.isfinite(corr)]
+        corr = corr[np.isfinite(corr)]
 
-        trace_A = np.asarray(self.device.TraceChA)
-        trace_B = np.asarray(self.device.TraceChB)
+        trace_a = np.asarray(self.device.TraceChA)
+        trace_b = np.asarray(self.device.TraceChB)
 
-        return Corr, Lags, trace_A, trace_B
+        return corr, lags, trace_a, trace_b
 
     @_error_handler
     def take_data(self):
@@ -377,7 +377,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     # of how it achieves this.
     ip_address = '127.0.0.1'
     firmware_revision = '4.0.0.3'
-    filepath = ""
+    filepath = "C:\\Data"
     LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision, filepath)
 
     # Clean up sys.argv path
