@@ -22,7 +22,7 @@ sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_serve
 from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 
-from pvdb import STATIC_PV_DATABASE, PvNames#, FIELDS_DATABASE
+from pvdb import STATIC_PV_DATABASE, Records, PvNames
 from PVConfig import get_pv_configs
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
@@ -109,7 +109,7 @@ class LSiCorrelatorDriver(Driver):
         for pv, preset in self.PVValues.items():
             # Write defaults to device
             print_and_log("setting {} to {}".format(pv, preset))
-            self.update_pv_value(pv, self.SettingPVs[pv].convert_to_pv(preset))
+            self.update_pv_value(pv, Records[pv].value.convert_to_pv(preset))
 
         self.updatePVs()
 
@@ -138,8 +138,10 @@ class LSiCorrelatorDriver(Driver):
         self.alarm_status = status
         self.alarm_severity = severity
 
-        for pv in self.SettingPVs.keys():
-            self.setParamStatus(pv, status, severity)
+        for record in Records:
+            self.setParamStatus(record.value.name, status, severity)
+        # for pv in self.SettingPVs.keys():
+        #     self.setParamStatus(pv, status, severity)
 
     def get_pv_value(self, reason):
         """
@@ -154,7 +156,7 @@ class LSiCorrelatorDriver(Driver):
 
         if reason in self.SettingPVs:
             # Need to convert internal state to PV (e.g. enum number)
-            pv_value = self.SettingPVs[reason].convert_to_pv(self.PVValues[reason])
+            pv_value = Records[reason].value.convert_to_pv(self.PVValues[reason])
         else:
             pv_value = self.getParam(reason)
 
@@ -172,10 +174,10 @@ class LSiCorrelatorDriver(Driver):
 
         if reason in self.SettingPVs:
             # Non-field PVs also get updated internally
-            sanitised_value = self.SettingPVs[reason].convert_from_pv(value)
-            sanitised_value_for_pv = self.SettingPVs[reason].convert_to_pv(sanitised_value)
+            sanitised_value = Records[reason].value.convert_from_pv(value)
+            sanitised_value_for_pv = Records[reason].value.convert_to_pv(sanitised_value)
             try:
-                self.SettingPVs[reason].set_on_device(sanitised_value)
+                Records[reason].value.set_on_device(sanitised_value)
                 self.setParam(reason, sanitised_value_for_pv)
                 self.setParam("{reason}.VAL".format(reason=reason), sanitised_value_for_pv)
             except ValueError as err:

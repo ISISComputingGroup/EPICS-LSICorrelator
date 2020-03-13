@@ -255,11 +255,11 @@ class Records(Enum):
                                has_setpoint=True
                                )
 
-    CURRENT_REPEAT = PvDefinition("CURRENT_REPETITION",
-                                  INT_AS_FLOAT_PV,
-                                  convert_from_pv=do_nothing,
-                                  convert_to_pv=do_nothing
-                                  )
+    CURRENT_REPETITION = PvDefinition("CURRENT_REPETITION",
+                                      INT_AS_FLOAT_PV,
+                                      convert_from_pv=do_nothing,
+                                      convert_to_pv=do_nothing
+                                      )
 
     RUNNING = PvDefinition("RUNNING",
                            PARAM_FIELDS_BINARY,
