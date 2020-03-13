@@ -22,7 +22,7 @@ sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_serve
 from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 
-from pvdb import STATIC_PV_DATABASE, PvNames, FIELDS_DATABASE
+from pvdb import STATIC_PV_DATABASE, PvNames#, FIELDS_DATABASE
 from PVConfig import get_pv_configs
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
@@ -370,7 +370,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     server = SimpleServer()
 
     server.createPV(ioc_name_with_pv_prefix, STATIC_PV_DATABASE)
-    server.createPV(ioc_name_with_pv_prefix, FIELDS_DATABASE)
+    #server.createPV(ioc_name_with_pv_prefix, FIELDS_DATABASE)
 
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
