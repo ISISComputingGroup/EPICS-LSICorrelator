@@ -80,11 +80,11 @@ class Record(object):
         database.update({self.name: self.pv_definition})
         database.update(self.add_standard_fields())
 
+        database.update(self.add_val_and_alarm_fields(self.name))
+
         if self.has_setpoint:
             database.update({"{base_pv}:SP".format(base_pv=self.name): self.pv_definition})
-            database.update({"{base_pv}:SP.VAL".format(base_pv=self.name): self.pv_definition})
-            database.update({"{base_pv}:SP.SEVR".format(base_pv=self.name): ALARM_SEVR_PV_FIELDS})
-            database.update({"{base_pv}:SP.STAT".format(base_pv=self.name): ALARM_STAT_PV_FIELDS})
+            database.update(self.add_val_and_alarm_fields("{}:SP".format(self.name)))
 
         return database
 
@@ -92,15 +92,30 @@ class Record(object):
         """ Uses the optionals present in self.pv_definition to add typical fields required for this record """
         new_fields = {}
 
-        new_fields.update({"{pv}.VAL".format(pv=self.name): self.pv_definition})
-        new_fields.update({"{pv}.SEVR".format(pv=self.name): ALARM_SEVR_PV_FIELDS})
-        new_fields.update({"{pv}.STAT".format(pv=self.name): ALARM_STAT_PV_FIELDS})
-
         if 'count' in self.pv_definition:
             new_fields.update({"{pv}.NORD".format(pv=self.name): {'type': 'int', 'value': 0}})
             new_fields.update({"{pv}.NELM".format(pv=self.name): {'type': 'int', 'value': self.pv_definition['count']}})
 
         if 'unit' in self.pv_definition:
             new_fields.update({"{pv}.EGU".format(pv=self.name): {'type': 'string', 'value': self.pv_definition['unit']}})
+
+        return new_fields
+
+    def add_val_and_alarm_fields(self, base_pv: str) -> Dict:
+        """
+        Makes base_pv.VAL, base_pv.SEVR and base_pv.STAT fields
+
+        Args:
+            base_pv: The name of the PV to add fields to
+
+        Returns:
+            new_fields: Dictionary of new fields and their pv_definitions
+        """
+
+        new_fields = {}
+
+        new_fields.update({"{base_pv}.VAL".format(base_pv=base_pv): self.pv_definition})
+        new_fields.update({"{base_pv}.SEVR".format(base_pv=base_pv): ALARM_SEVR_PV_FIELDS})
+        new_fields.update({"{base_pv}.STAT".format(base_pv=base_pv): ALARM_STAT_PV_FIELDS})
 
         return new_fields
