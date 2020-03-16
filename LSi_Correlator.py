@@ -22,7 +22,7 @@ sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_serve
 from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 
-from pvdb import STATIC_PV_DATABASE, Records, PvNames
+from pvdb import STATIC_PV_DATABASE, Records #, PvNames
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
@@ -66,47 +66,47 @@ class LSiCorrelatorDriver(Driver):
 
         self.device = LSICorrelator(host, firmware_revision)
 
-        self.PVValues = {
-            PvNames.CORRELATIONTYPE: LSI_Param.CorrelationType.AUTO,
-            PvNames.NORMALIZATION: LSI_Param.Normalization.COMPENSATED,
-            PvNames.MEASUREMENTDURATION: 10,
-            PvNames.SWAPCHANNELS: LSI_Param.SwapChannels.ChA_ChB,
-            PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns200,
-            PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
-            PvNames.OVERLOADLIMIT: 20,
-            PvNames.OVERLOADINTERVAL: 400,
-            PvNames.ERRORMSG: "",
-            PvNames.START: 0,
-            PvNames.STOP: 0,
-            PvNames.REPETITIONS: 2,
-            PvNames.CURRENT_REPEAT: 0,
-            PvNames.CORRELATION_FUNCTION: [],
-            PvNames.LAGS: [],
-            PvNames.FILENAME: "",
-            PvNames.FILEPATH: "",
-            PvNames.CONNECTED: self.device.isConnected(),
-            PvNames.RUNNING: False,
-            PvNames.SCATTERING_ANGLE: 2.2,
-            PvNames.SAMPLE_TEMP: 300,
-            PvNames.SOLVENT_VISCOSITY: 1100,
-            PvNames.SOLVENT_REFRACTIVE_INDEX: 1.1,
-            PvNames.LASER_WAVELENGTH: 440,
-            PvNames.SIM: 0,
-            PvNames.DISABLE: 0
-        }
+        # self.PVValues = {
+        #     PvNames.CORRELATIONTYPE: LSI_Param.CorrelationType.AUTO,
+        #     PvNames.NORMALIZATION: LSI_Param.Normalization.COMPENSATED,
+        #     PvNames.MEASUREMENTDURATION: 10,
+        #     PvNames.SWAPCHANNELS: LSI_Param.SwapChannels.ChA_ChB,
+        #     PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns200,
+        #     PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
+        #     PvNames.OVERLOADLIMIT: 20,
+        #     PvNames.OVERLOADINTERVAL: 400,
+        #     PvNames.ERRORMSG: "",
+        #     PvNames.START: 0,
+        #     PvNames.STOP: 0,
+        #     PvNames.REPETITIONS: 2,
+        #     PvNames.CURRENT_REPEAT: 0,
+        #     PvNames.CORRELATION_FUNCTION: [],
+        #     PvNames.LAGS: [],
+        #     PvNames.FILENAME: "",
+        #     PvNames.CONNECTED: self.device.isConnected(),
+        #     PvNames.RUNNING: False,
+        #     PvNames.SCATTERING_ANGLE: 2.2,
+        #     PvNames.SAMPLE_TEMP: 300,
+        #     PvNames.SOLVENT_VISCOSITY: 1100,
+        #     PvNames.SOLVENT_REFRACTIVE_INDEX: 1.1,
+        #     PvNames.LASER_WAVELENGTH: 440,
+        #     PvNames.SIM: 0,
+        #     PvNames.DISABLE: 0
+        # }
 
         self.alarm_status = Alarm.NO_ALARM
         self.alarm_severity = Severity.NO_ALARM
 
         if os.path.isdir(filepath):
-            self.PVValues[PvNames.FILEPATH] = filepath
+            self.update_pv_value(Records.FILEPATH.value.name, filepath)
+            print_and_log("setting FILEPATH to {}".format(filepath))
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
 
-        for pv, preset in self.PVValues.items():
-            # Write defaults to device
-            print_and_log("setting {} to {}".format(pv, preset))
-            self.update_pv_value(pv, Records[pv].value.convert_to_pv(preset))
+        # for pv, preset in self.PVValues.items():
+        #     # Write defaults to device
+        #     print_and_log("setting {} to {}".format(pv, preset))
+        #     self.update_pv_value(pv, Records[pv].value.convert_to_pv(preset))
 
         self.updatePVs()
 
@@ -120,7 +120,7 @@ class LSiCorrelatorDriver(Driver):
             src (optional): Gives the source of the message. Default source is LSI (from this IOC).
         """
 
-        self.update_pv_value(PvNames.ERRORMSG, error)
+        self.update_pv_value(Records.ERRORMSG.name, error)
         print_and_log(error, severity, src)
 
     def set_disconnected_alarms(self, in_alarm: bool):
@@ -136,11 +136,12 @@ class LSiCorrelatorDriver(Driver):
         self.alarm_severity = severity
 
         for record in Records:
-            self.setParamStatus(record.value.name, status, severity)
+            self.setParamStatus(record.name, status, severity)
 
     def get_pv_value(self, reason):
         """
-        Returns the value of a PV held in this driver
+        Gets the current value of reason in the PCASpy driver (the 'pv').
+        If the supplied reason has an available record, the pv value is sanitised through convert_from_pv.
 
         Args:
             reason (str): The name of the PV to get the value of
@@ -149,7 +150,16 @@ class LSiCorrelatorDriver(Driver):
             # Return value of base PV, not setpoint
             reason = get_base_pv(reason)
 
-        return self.getParam(reason)
+        pv_value = self.getParam(reason)
+
+        try:
+            record = Records[reason].value
+            sanitised_value = record.convert_from_pv(pv_value)
+        except KeyError:
+            # Reason has no defining record
+            sanitised_value = pv_value
+
+        return sanitised_value
 
     def update_param_and_fields(self, reason, value):
         """
@@ -208,7 +218,7 @@ class LSiCorrelatorDriver(Driver):
             value: Value to set
         """
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
-        if reason == PvNames.START:
+        if reason == Records.START.name:
             THREADPOOL.submit(self.take_data)
 
         if reason.endswith(":SP"):
@@ -269,29 +279,29 @@ class LSiCorrelatorDriver(Driver):
         """
         self.device.configure()
 
-        #no_repetitions = self.get_pv_value()
-        for repeat in range(1, self.PVValues[PvNames.REPETITIONS]+1):
-            self.update_pv_value(PvNames.CURRENT_REPEAT, repeat)
+        no_repetitions = self.get_pv_value(Records.REPETITIONS.name)
+        for repeat in range(1, no_repetitions+1):
+            self.update_pv_value(Records.CURRENT_REPEAT.name, repeat)
 
             self.device.start()
 
             while self.device.MeasurementOn():
                 sleep(0.5)
-                self.update_pv_value(PvNames.RUNNING, True)
+                self.update_pv_value(Records.RUNNING.name, True)
                 self.device.update()
 
-            self.update_pv_value(PvNames.RUNNING, False)
+            self.update_pv_value(Records.RUNNING.name, False)
 
             if self.device.Correlation is None:
                 # No data returned, correlator may be disconnected
-                self.update_pv_value(PvNames.CONNECTED, False)
+                self.update_pv_value(Records.CONNECTED.name, False)
                 self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected", "INVALID")
                 self.set_disconnected_alarms(True)
             else:
                 Corr, Lags, trace_A, trace_B = self.get_data_as_arrays()
 
-                self.set_array_pv_value(PvNames.CORRELATION_FUNCTION, Corr)
-                self.set_array_pv_value(PvNames.LAGS, Lags)
+                self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, Corr)
+                self.set_array_pv_value(Records.LAGS.name, Lags)
 
                 self.save_data(Corr, Lags, trace_A, trace_B)
 
@@ -300,8 +310,8 @@ class LSiCorrelatorDriver(Driver):
         Adds a timestamp to the current filepath/filename
         """
 
-        filepath = self.get_pv_value(PvNames.FILEPATH)
-        filename = self.get_pv_value(PvNames.FILENAME)
+        filepath = self.get_pv_value(Records.FILEPATH.name)
+        filename = self.get_pv_value(Records.FILENAME.name)
         timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
 
         return "{filepath}/{filename}_{timestamp}".format(filepath=filepath, filename=filename, timestamp=timestamp)
@@ -320,21 +330,21 @@ class LSiCorrelatorDriver(Driver):
         correlation_data = np.vstack((time_lags, correlation)).T
         raw_channel_data = np.vstack((trace_A, trace_B)).T
         metadata_variables = [
-            PvNames.SCATTERING_ANGLE,
-            PvNames.SAMPLE_TEMP,
-            PvNames.SOLVENT_VISCOSITY,
-            PvNames.SOLVENT_REFRACTIVE_INDEX,
-            PvNames.LASER_WAVELENGTH,
-            PvNames.CORRELATIONTYPE,
-            PvNames.NORMALIZATION,
-            PvNames.MEASUREMENTDURATION,
-            PvNames.SWAPCHANNELS,
-            PvNames.SAMPLINGTIMEMULTIT,
-            PvNames.TRANSFERRATE,
-            PvNames.OVERLOADLIMIT,
-            PvNames.OVERLOADINTERVAL,
-            PvNames.REPETITIONS,
-            PvNames.CURRENT_REPEAT
+            Records.SCATTERING_ANGLE.name,
+            Records.SAMPLE_TEMP.name,
+            Records.SOLVENT_VISCOSITY.name,
+            Records.SOLVENT_REFRACTIVE_INDEX.name,
+            Records.LASER_WAVELENGTH.name,
+            Records.CORRELATIONTYPE.name,
+            Records.NORMALIZATION.name,
+            Records.MEASUREMENTDURATION.name,
+            Records.SWAPCHANNELS.name,
+            Records.SAMPLINGTIMEMULTIT.name,
+            Records.TRANSFERRATE.name,
+            Records.OVERLOADLIMIT.name,
+            Records.OVERLOADINTERVAL.name,
+            Records.REPETITIONS.name,
+            Records.CURRENT_REPETITION.name
         ]
 
         with open(filename, 'w') as f:
