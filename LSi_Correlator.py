@@ -305,6 +305,10 @@ class LSiCorrelatorDriver(Driver):
 
                 self.save_data(Corr, Lags, trace_A, trace_B)
 
+        # Attempt to set start PV back to NO, purely for aesthetics (this PV is actually always ready)
+        self.update_param_and_fields(Records.START.name, 0)
+        self.update_param_and_fields("{pv}:SP".format(pv=Records.START.name), 0)
+
     def add_timestamp_to_filename(self):
         """
         Adds a timestamp to the current filepath/filename
