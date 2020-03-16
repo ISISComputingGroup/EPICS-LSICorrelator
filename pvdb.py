@@ -113,9 +113,9 @@ class Record(object):
         self.has_setpoint = has_setpoint
         self.database_entries = self.generate_database_entries()
 
-    def generate_database_entries(self):
+    def generate_database_entries(self) -> Dict:
         """
-        Combines the PV definitions for the base PV and all extra fields needed
+        Compiles the list of PV definitions for fields required in this record
         """
 
         database = {}
@@ -131,7 +131,7 @@ class Record(object):
         return database
 
     def add_standard_fields(self) -> Dict:
-        """ Creates PVs to allow fields to be read """
+        """ Uses the optionals present in self.pv_definition to add typical fields required for this record """
         new_fields = {}
 
         new_fields.update({"{pv}.VAL".format(pv=self.name): self.pv_definition})
