@@ -23,7 +23,6 @@ from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 
 from pvdb import STATIC_PV_DATABASE, Records, PvNames
-from PVConfig import get_pv_configs
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
@@ -66,8 +65,6 @@ class LSiCorrelatorDriver(Driver):
         super(LSiCorrelatorDriver, self).__init__()
 
         self.device = LSICorrelator(host, firmware_revision)
-
-        self.SettingPVs = get_pv_configs(self.device)
 
         self.PVValues = {
             PvNames.CORRELATIONTYPE: LSI_Param.CorrelationType.AUTO,
@@ -140,8 +137,6 @@ class LSiCorrelatorDriver(Driver):
 
         for record in Records:
             self.setParamStatus(record.value.name, status, severity)
-        # for pv in self.SettingPVs.keys():
-        #     self.setParamStatus(pv, status, severity)
 
     def get_pv_value(self, reason):
         """
@@ -154,19 +149,9 @@ class LSiCorrelatorDriver(Driver):
             # Return value of base PV, not setpoint
             reason = get_base_pv(reason)
 
-        # pv_value = Records[reason].value.convert_to_pv(self.PVValues[reason])
-        # try:
-        #     pv
-        # #if reason in self.SettingPVs:
-        #     # Need to convert internal state to PV (e.g. enum number)
-        #     pv_value = Records[reason].value.convert_to_pv(self.PVValues[reason])
-        # except KeyError:
-        #     # 
-        # pv_value = self.getParam(reason)
-
         return self.getParam(reason)
 
-    def update_param(self, reason, value):
+    def update_param_and_fields(self, reason, value):
         """
         Updates given param, VAL field, and alarm status/severity in PCASpy driver
         """
@@ -179,7 +164,7 @@ class LSiCorrelatorDriver(Driver):
             self.update_error_pv_print_and_log("{}".format(err))
 
     @_error_handler
-    def update_pv_value(self, reason, value, update_setpoint: bool=False):
+    def update_pv_value(self, reason, value, update_setpoint: bool = False):
         """
         Helper function to update the value of a PV held in this driver
 
@@ -194,17 +179,15 @@ class LSiCorrelatorDriver(Driver):
         except KeyError:
             self.update_error_pv_print_and_log("Can't write to PV {}, PV not found".format(reason))
 
-        #if reason in self.SettingPVs:
-        # Non-field PVs also get updated internally
-        sanitised_value = Records[reason].value.convert_from_pv(value)
-        sanitised_value_for_pv = Records[reason].value.convert_to_pv(sanitised_value)
+        sanitised_value = record.convert_from_pv(value)
+        sanitised_value_for_pv = record.convert_to_pv(sanitised_value)
 
         record.set_on_device(self.device, sanitised_value)
 
-        self.update_param(reason, sanitised_value_for_pv)
+        self.update_param_and_fields(reason, sanitised_value_for_pv)
 
         if update_setpoint:
-            self.update_param("{reason}:SP".format(reason=reason), sanitised_value_for_pv)
+            self.update_param_and_fields("{reason}:SP".format(reason=reason), sanitised_value_for_pv)
 
     def set_array_pv_value(self, reason, value):
         """
@@ -228,17 +211,6 @@ class LSiCorrelatorDriver(Driver):
         if reason == PvNames.START:
             THREADPOOL.submit(self.take_data)
 
-        # if reason.endswith(":SP"):
-        #     pv_to_write = get_base_pv(reason)
-        # else:
-        #     pv_to_write = reason
-
-        # try:
-        #     record = Records[pv_to_write].value
-        # except KeyError:
-        #     self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
-
-        # if reason.endswith(":SP") and get_base_pv(reason) in Records.keys():
         if reason.endswith(":SP"):
             # Update both SP and non-SP fields
             THREADPOOL.submit(self.update_pv_value, get_base_pv(reason), value, update_setpoint=True)
@@ -297,7 +269,7 @@ class LSiCorrelatorDriver(Driver):
         """
         self.device.configure()
 
-        no_repetitions = self.get_pv_value()
+        #no_repetitions = self.get_pv_value()
         for repeat in range(1, self.PVValues[PvNames.REPETITIONS]+1):
             self.update_pv_value(PvNames.CURRENT_REPEAT, repeat)
 
