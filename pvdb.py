@@ -10,6 +10,7 @@ from pcaspy.alarm import AlarmStrings, SeverityStrings
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
 sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
+from LSICorrelator import LSICorrelator
 from LSI import LSI_Param
 
 PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"], 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
@@ -63,11 +64,26 @@ def convert_lsi_enum_to_pv_value(enum_class, current_state):
     return enum_as_list.index(state_name)
 
 
+def stop_device(device, _):
+    """
+    Sends the stop device command
+    """
+    device.stop()
+
+
+def null_device_setter(*args, **kwargs):
+    """
+    Function to call when device has no setter
+    """
+    pass
+
+
 def do_nothing(value):
     """
     No-op for outputs which do not need modifying
     """
     return value
+
 
 class PvDefinition(object):
     """
@@ -79,21 +95,15 @@ class PvDefinition(object):
                  has_setpoint: Optional[bool] = False,
                  convert_from_pv: Optional[Callable] = do_nothing,
                  convert_to_pv: Optional[Callable] = do_nothing,
-                 device_setter: Optional[Callable] = do_nothing):
+                 device_setter: Optional[Callable] = null_device_setter):
         self.name = name
         self.pv_definition = pv_definition
         self.extra_fields = extra_fields
         self.convert_from_pv = convert_from_pv
         self.convert_to_pv = convert_to_pv
         self.set_on_device = device_setter
+        self.has_setpoint = has_setpoint
         self.database_entries = self.generate_database_entries(has_setpoint)
-
-    def set_device_setter(self, device_setter: Callable):
-        """
-        Assigns the function which is called when this parameter needs to be set on the device
-        """
-
-        self.set_on_device = device_setter
 
     def generate_database_entries(self, has_setpoint: bool):
         """
@@ -105,6 +115,9 @@ class PvDefinition(object):
         database.update(self.add_standard_fields())
         if has_setpoint:
             database.update({"{base_pv}:SP".format(base_pv=self.name): self.pv_definition})
+            database.update({"{base_pv}:SP.VAL".format(base_pv=self.name): self.pv_definition})
+            database.update({"{base_pv}:SP.SEVR".format(base_pv=self.name): ALARM_SEVR_PV_FIELDS})
+            database.update({"{base_pv}:SP.STAT".format(base_pv=self.name): ALARM_STAT_PV_FIELDS})
 
         for field in self.extra_fields:
             if field.definition is None:
@@ -135,17 +148,23 @@ class PvDefinition(object):
 
 
 class Records(Enum):
+    @staticmethod
+    def keys():
+        return [member.name for member in Records]
+
     CORRELATIONTYPE = PvDefinition("CORRELATIONTYPE",
-                                   {'type': 'enum', 'enums': [member.name for member in LSI_Param.CorrelationType]},
+                                   populate_enum_pv(LSI_Param.CorrelationType),
                                    convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.CorrelationType),
                                    convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.CorrelationType),
+                                   device_setter=LSICorrelator.setCorrelationType,
                                    has_setpoint=True
                                    )
 
     NORMALIZATION = PvDefinition("NORMALIZATION",
-                                 {'type': 'enum', 'enums': [member.name for member in LSI_Param.Normalization]},
+                                 populate_enum_pv(LSI_Param.Normalization),
                                  convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.Normalization),
                                  convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.Normalization),
+                                 device_setter=LSICorrelator.setNormalization,
                                  has_setpoint=True
                                  )
 
@@ -153,27 +172,31 @@ class Records(Enum):
                                        INT_AS_FLOAT_PV,
                                        convert_from_pv=round,
                                        convert_to_pv=do_nothing,
+                                       device_setter=LSICorrelator.setMeasurementDuration,
                                        has_setpoint=True
                                        )
 
     SWAPCHANNELS = PvDefinition("SWAPCHANNELS",
-                                {'type': 'enum', 'enums': [member.name for member in LSI_Param.SwapChannels]},
+                                populate_enum_pv(LSI_Param.SwapChannels),
                                 convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.SwapChannels),
                                 convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.SwapChannels),
+                                device_setter=LSICorrelator.setSwapChannels,
                                 has_setpoint=True
                                 )
 
     SAMPLINGTIMEMULTIT = PvDefinition("SAMPLINGTIMEMULTIT",
-                                      {'type': 'enum', 'enums': [member.name for member in LSI_Param.SamplingTimeMultiT]},
+                                      populate_enum_pv(LSI_Param.SamplingTimeMultiT),
                                       convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.SamplingTimeMultiT),
                                       convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.SamplingTimeMultiT),
+                                      device_setter=LSICorrelator.setSamplingTimeMultiT,
                                       has_setpoint=True
                                       )
 
     TRANSFERRATE = PvDefinition("TRANSFERRATE",
-                                {'type': 'enum', 'enums': [member.name for member in LSI_Param.TransferRate]},
+                                populate_enum_pv(LSI_Param.TransferRate),
                                 convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.TransferRate),
                                 convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.TransferRate),
+                                device_setter=LSICorrelator.setTransferRate,
                                 has_setpoint=True
                                 )
 
@@ -181,6 +204,7 @@ class Records(Enum):
                                  {'type': 'float', 'prec': 0, 'value': 0.0, 'unit': 'Mcps'},
                                  convert_from_pv=round,
                                  convert_to_pv=do_nothing,
+                                 device_setter=LSICorrelator.setOverloadLimit,
                                  has_setpoint=True
                                  )
 
@@ -188,6 +212,7 @@ class Records(Enum):
                                     INT_AS_FLOAT_PV,
                                     convert_from_pv=round,
                                     convert_to_pv=do_nothing,
+                                    device_setter=LSICorrelator.setOverloadTimeInterval,
                                     has_setpoint=True
                                     )
 
@@ -221,6 +246,7 @@ class Records(Enum):
                         PARAM_FIELDS_BINARY,
                         convert_from_pv=bool,
                         convert_to_pv=do_nothing,
+                        device_setter=stop_device,
                         has_setpoint=True
                         )
 
@@ -348,10 +374,6 @@ class PvNames(object):
     SIM = "SIM"
     DISABLE = "DISABLE"
 
-
-def generate_static_pv_database(records):
-    for record in records:
-        print(record.value.name)
 
 
 STATIC_PV_DATABASE = {}
