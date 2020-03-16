@@ -22,7 +22,7 @@ sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_serve
 from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 
-from pvdb import STATIC_PV_DATABASE, Records #, PvNames
+from pvdb import STATIC_PV_DATABASE, Records
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
