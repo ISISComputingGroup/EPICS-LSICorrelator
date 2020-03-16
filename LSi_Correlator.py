@@ -197,7 +197,7 @@ class LSiCorrelatorDriver(Driver):
             value: The new values to write to the array
         """
         self.update_pv_value(reason, value)
-        self.update_pv_value("{reason}.NORD".format(reason=reason), len(value))
+        self.setParam("{reason}.NORD".format(reason=reason), len(value))
 
     @_error_handler
     def write(self, reason: str, value):
