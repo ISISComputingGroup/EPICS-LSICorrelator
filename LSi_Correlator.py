@@ -66,33 +66,31 @@ class LSiCorrelatorDriver(Driver):
 
         self.device = LSICorrelator(host, firmware_revision)
 
-        # self.PVValues = {
-        #     PvNames.CORRELATIONTYPE: LSI_Param.CorrelationType.AUTO,
-        #     PvNames.NORMALIZATION: LSI_Param.Normalization.COMPENSATED,
-        #     PvNames.MEASUREMENTDURATION: 10,
-        #     PvNames.SWAPCHANNELS: LSI_Param.SwapChannels.ChA_ChB,
-        #     PvNames.SAMPLINGTIMEMULTIT: LSI_Param.SamplingTimeMultiT.ns200,
-        #     PvNames.TRANSFERRATE: LSI_Param.TransferRate.ms100,
-        #     PvNames.OVERLOADLIMIT: 20,
-        #     PvNames.OVERLOADINTERVAL: 400,
-        #     PvNames.ERRORMSG: "",
-        #     PvNames.START: 0,
-        #     PvNames.STOP: 0,
-        #     PvNames.REPETITIONS: 2,
-        #     PvNames.CURRENT_REPEAT: 0,
-        #     PvNames.CORRELATION_FUNCTION: [],
-        #     PvNames.LAGS: [],
-        #     PvNames.FILENAME: "",
-        #     PvNames.CONNECTED: self.device.isConnected(),
-        #     PvNames.RUNNING: False,
-        #     PvNames.SCATTERING_ANGLE: 2.2,
-        #     PvNames.SAMPLE_TEMP: 300,
-        #     PvNames.SOLVENT_VISCOSITY: 1100,
-        #     PvNames.SOLVENT_REFRACTIVE_INDEX: 1.1,
-        #     PvNames.LASER_WAVELENGTH: 440,
-        #     PvNames.SIM: 0,
-        #     PvNames.DISABLE: 0
-        # }
+        defaults = {
+            Records.CORRELATIONTYPE.value: LSI_Param.CorrelationType.AUTO,
+            Records.NORMALIZATION.value: LSI_Param.Normalization.COMPENSATED,
+            Records.MEASUREMENTDURATION.value: 10,
+            Records.SWAPCHANNELS.value: LSI_Param.SwapChannels.ChA_ChB,
+            Records.SAMPLINGTIMEMULTIT.value: LSI_Param.SamplingTimeMultiT.ns200,
+            Records.TRANSFERRATE.value: LSI_Param.TransferRate.ms100,
+            Records.OVERLOADLIMIT.value: 20,
+            Records.OVERLOADINTERVAL.value: 400,
+            Records.ERRORMSG.value: "",
+            Records.REPETITIONS.value: 2,
+            Records.CURRENT_REPETITION.value: 0,
+            Records.CORRELATION_FUNCTION.value: [],
+            Records.LAGS.value: [],
+            Records.FILENAME.value: "",
+            Records.CONNECTED.value: self.device.isConnected(),
+            Records.RUNNING.value: False,
+            Records.SCATTERING_ANGLE.value: 2.2,
+            Records.SAMPLE_TEMP.value: 300,
+            Records.SOLVENT_VISCOSITY.value: 1100,
+            Records.SOLVENT_REFRACTIVE_INDEX.value: 1.1,
+            Records.LASER_WAVELENGTH.value: 440,
+            Records.SIM.value: 0,
+            Records.DISABLE.value: 0
+        }
 
         self.alarm_status = Alarm.NO_ALARM
         self.alarm_severity = Severity.NO_ALARM
@@ -103,10 +101,10 @@ class LSiCorrelatorDriver(Driver):
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
 
-        # for pv, preset in self.PVValues.items():
-        #     # Write defaults to device
-        #     print_and_log("setting {} to {}".format(pv, preset))
-        #     self.update_pv_value(pv, Records[pv].value.convert_to_pv(preset))
+        for record, default_value in defaults.items():
+            # Write defaults to device
+            print_and_log("setting {} to {}".format(record.name, default_value))
+            self.update_pv_value(record.name, record.convert_to_pv(default_value))
 
         self.updatePVs()
 
@@ -176,7 +174,7 @@ class LSiCorrelatorDriver(Driver):
     @_error_handler
     def update_pv_value(self, reason, value, update_setpoint: bool = False):
         """
-        Helper function to update the value of a PV held in this driver
+        Helper function to update the value of a PV held in this driver and sets the value on the device.
 
         Args:
             reason (str): The name of the PV to set
@@ -185,19 +183,21 @@ class LSiCorrelatorDriver(Driver):
         """
 
         try:
-            record = Records[reason].value
+            record = Records[reason]
         except KeyError:
-            self.update_error_pv_print_and_log("Can't write to PV {}, PV not found".format(reason))
+            self.update_error_pv_print_and_log("Can't update to PV {}, PV not found".format(reason))
+            record = None
 
-        sanitised_value = record.convert_from_pv(value)
-        sanitised_value_for_pv = record.convert_to_pv(sanitised_value)
+        if isinstance(record, Records):
+            sanitised_value = record.value.convert_from_pv(value)
+            sanitised_value_for_pv = record.value.convert_to_pv(sanitised_value)
 
-        record.set_on_device(self.device, sanitised_value)
+            record.value.set_on_device(self.device, sanitised_value)
 
-        self.update_param_and_fields(reason, sanitised_value_for_pv)
+            self.update_param_and_fields(reason, sanitised_value_for_pv)
 
-        if update_setpoint:
-            self.update_param_and_fields("{reason}:SP".format(reason=reason), sanitised_value_for_pv)
+            if update_setpoint:
+                self.update_param_and_fields("{reason}:SP".format(reason=reason), sanitised_value_for_pv)
 
     def set_array_pv_value(self, reason, value):
         """
