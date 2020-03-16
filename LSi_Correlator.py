@@ -96,7 +96,7 @@ class LSiCorrelatorDriver(Driver):
         self.alarm_severity = Severity.NO_ALARM
 
         if os.path.isdir(filepath):
-            self.update_pv_value(Records.FILEPATH.value.name, filepath)
+            self.update_pv_and_write_to_device(Records.FILEPATH.value.name, filepath)
             print_and_log("setting FILEPATH to {}".format(filepath))
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
@@ -104,7 +104,7 @@ class LSiCorrelatorDriver(Driver):
         for record, default_value in defaults.items():
             # Write defaults to device
             print_and_log("setting {} to {}".format(record.name, default_value))
-            self.update_pv_value(record.name, record.convert_to_pv(default_value))
+            self.update_pv_and_write_to_device(record.name, record.convert_to_pv(default_value))
 
         self.updatePVs()
 
@@ -118,7 +118,7 @@ class LSiCorrelatorDriver(Driver):
             src (optional): Gives the source of the message. Default source is LSI (from this IOC).
         """
 
-        self.update_pv_value(Records.ERRORMSG.name, error)
+        self.update_pv_and_write_to_device(Records.ERRORMSG.name, error)
         print_and_log(error, severity, src)
 
     def set_disconnected_alarms(self, in_alarm: bool):
@@ -172,7 +172,7 @@ class LSiCorrelatorDriver(Driver):
             self.update_error_pv_print_and_log("{}".format(err))
 
     @_error_handler
-    def update_pv_value(self, reason, value, update_setpoint: bool = False):
+    def update_pv_and_write_to_device(self, reason, value, update_setpoint: bool = False):
         """
         Helper function to update the value of a PV held in this driver and sets the value on the device.
 
@@ -206,7 +206,7 @@ class LSiCorrelatorDriver(Driver):
             reason (str): The name of the PV to set
             value: The new values to write to the array
         """
-        self.update_pv_value(reason, value)
+        self.update_pv_and_write_to_device(reason, value)
         self.setParam("{reason}.NORD".format(reason=reason), len(value))
 
     @_error_handler
@@ -223,9 +223,9 @@ class LSiCorrelatorDriver(Driver):
 
         if reason.endswith(":SP"):
             # Update both SP and non-SP fields
-            THREADPOOL.submit(self.update_pv_value, get_base_pv(reason), value, update_setpoint=True)
+            THREADPOOL.submit(self.update_pv_and_write_to_device, get_base_pv(reason), value, update_setpoint=True)
         else:
-            THREADPOOL.submit(self.update_pv_value, reason, value)
+            THREADPOOL.submit(self.update_pv_and_write_to_device, reason, value)
 
         # Update PVs after any write.
         self.updatePVs()
@@ -281,20 +281,20 @@ class LSiCorrelatorDriver(Driver):
 
         no_repetitions = self.get_pv_value(Records.REPETITIONS.name)
         for repeat in range(1, no_repetitions+1):
-            self.update_pv_value(Records.CURRENT_REPEAT.name, repeat)
+            self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
 
             self.device.start()
 
             while self.device.MeasurementOn():
                 sleep(0.5)
-                self.update_pv_value(Records.RUNNING.name, True)
+                self.update_pv_and_write_to_device(Records.RUNNING.name, True)
                 self.device.update()
 
-            self.update_pv_value(Records.RUNNING.name, False)
+            self.update_pv_and_write_to_device(Records.RUNNING.name, False)
 
             if self.device.Correlation is None:
                 # No data returned, correlator may be disconnected
-                self.update_pv_value(Records.CONNECTED.name, False)
+                self.update_pv_and_write_to_device(Records.CONNECTED.name, False)
                 self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected", "INVALID")
                 self.set_disconnected_alarms(True)
             else:
@@ -376,7 +376,6 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     server = SimpleServer()
 
     server.createPV(ioc_name_with_pv_prefix, STATIC_PV_DATABASE)
-    #server.createPV(ioc_name_with_pv_prefix, FIELDS_DATABASE)
 
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
