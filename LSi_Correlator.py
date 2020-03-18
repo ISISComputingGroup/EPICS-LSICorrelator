@@ -74,12 +74,8 @@ class LSiCorrelatorDriver(Driver):
             Records.TRANSFERRATE.value: LSI_Param.TransferRate.ms100,
             Records.OVERLOADLIMIT.value: 20,
             Records.OVERLOADINTERVAL.value: 400,
-            Records.ERRORMSG.value: "",
             Records.REPETITIONS.value: 2,
             Records.CURRENT_REPETITION.value: 0,
-            Records.CORRELATION_FUNCTION.value: [],
-            Records.LAGS.value: [],
-            Records.FILENAME.value: "",
             Records.CONNECTED.value: self.device.isConnected(),
             Records.RUNNING.value: False,
             Records.SCATTERING_ANGLE.value: 2.2,
@@ -184,19 +180,22 @@ class LSiCorrelatorDriver(Driver):
         try:
             record = Records[reason]
         except KeyError:
-            self.update_error_pv_print_and_log("Can't update to PV {}, PV not found".format(reason))
+            self.update_error_pv_print_and_log("Can't update PV {}, PV not found".format(reason))
             record = None
 
         if isinstance(record, Records):
-            sanitised_value = record.value.convert_from_pv(value)
-            sanitised_value_for_pv = record.value.convert_to_pv(sanitised_value)
-
-            record.value.set_on_device(self.device, sanitised_value)
-
-            self.update_param_and_fields(reason, sanitised_value_for_pv)
-
-            if update_setpoint:
-                self.update_param_and_fields("{reason}:SP".format(reason=reason), sanitised_value_for_pv)
+            try:
+                record.value.set_on_device(self.device, record.value.convert_from_pv(value))
+            except ValueError as e:
+                self.update_error_pv_print_and_log("Can't update PV {}, invalid value".format(reason))
+                self.update_error_pv_print_and_log(str(e))
+                return
+            else:
+                # No error raised, set new value to pv/params
+                new_pv_value = value
+                self.update_param_and_fields(reason, new_pv_value)
+                if update_setpoint:
+                    self.update_param_and_fields("{reason}:SP".format(reason=reason), new_pv_value)
 
     def set_array_pv_value(self, reason, value):
         """
@@ -216,7 +215,7 @@ class LSiCorrelatorDriver(Driver):
             reason: PV to set value of
             value: Value to set
         """
-        print_and_log("LSiCorrelatorDriver: Processing PV write for reason {}".format(reason))
+        print_and_log("LSiCorrelatorDriver: Processing PV write for reason {} value {}".format(reason, value))
         if reason == Records.START.name:
             THREADPOOL.submit(self.take_data)
 
@@ -236,15 +235,15 @@ class LSiCorrelatorDriver(Driver):
         Args:
             reason (str): PV to read value of
         """
+
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-        try:
-            PV_value = self.get_pv_value(reason)
-        except KeyError:
-            self.update_error_pv_print_and_log("LSiCorrelatorDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
-            PV_value = None
+        if reason.endswith(":SP"):
+            pv_value = self.getParam(get_base_pv(reason))
+        else:
+            pv_value = self.getParam(reason)
 
-        return PV_value
+        return pv_value
 
     def get_data_as_arrays(self):
         """

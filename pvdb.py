@@ -117,7 +117,7 @@ class Records(Enum):
     ERRORMSG = Record("ERRORMSG",
                       CHAR_PV_FIELDS,
                       convert_from_pv=do_nothing,
-                      convert_to_pv=do_nothing
+                      convert_to_pv=bytes
                       )
 
     FILEPATH = Record("FILEPATH",
