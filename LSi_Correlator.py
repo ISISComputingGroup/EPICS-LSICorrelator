@@ -52,12 +52,11 @@ class LSiCorrelatorDriver(Driver):
     A driver for the LSi Correlator
     """
 
-    def __init__(self, pv_prefix, host: str, firmware_revision: str, filepath: str):
+    def __init__(self, host: str, firmware_revision: str, filepath: str):
         """
         A driver for the LSi Correlator
 
         Args:
-            pv_prefix: the pv prefix
             host: The IP address of the LSi Correlator
             firmware: The firmware revision of the LSi Correlator
             filepath: The directory in which to place data files
@@ -387,7 +386,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     ip_address = '127.0.0.1'
     firmware_revision = '4.0.0.3'
     filepath = "C:\\Data"
-    LSiCorrelatorDriver(pv_prefix, ip_address, firmware_revision, filepath)
+    LSiCorrelatorDriver(ip_address, firmware_revision, filepath)
 
     # Clean up sys.argv path
     exepath = str(Path(sys.argv[0]))
