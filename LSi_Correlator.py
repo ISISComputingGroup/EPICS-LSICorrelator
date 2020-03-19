@@ -16,7 +16,7 @@ from time import sleep
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
+sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "Support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from LSI import LSI_Param

@@ -4,9 +4,7 @@ import os
 from functools import partial
 from enum import Enum
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
-
-sys.path.insert(1, 'C:\\Instrument\\Dev\\LSI-Correlator')
+sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "Support", "lsicorr_vendor", "master"))
 from LSICorrelator import LSICorrelator
 from LSI import LSI_Param
 
