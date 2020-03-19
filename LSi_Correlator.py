@@ -183,16 +183,18 @@ class LSiCorrelatorDriver(Driver):
             self.update_error_pv_print_and_log("Can't update PV {}, PV not found".format(reason))
             record = None
 
-        if isinstance(record, Records):
+        if record is not None:
+            # Need to go through both input sanitisers to make sure we set enum values correctly
+            value_for_lsi_driver = record.value.convert_from_pv(value)
+            new_pv_value = record.value.convert_to_pv(value_for_lsi_driver)
             try:
-                record.value.set_on_device(self.device, record.value.convert_from_pv(value))
+                record.value.set_on_device(self.device, value_for_lsi_driver)
             except ValueError as e:
                 self.update_error_pv_print_and_log("Can't update PV {}, invalid value".format(reason))
                 self.update_error_pv_print_and_log(str(e))
                 return
             else:
                 # No error raised, set new value to pv/params
-                new_pv_value = value
                 self.update_param_and_fields(reason, new_pv_value)
                 if update_setpoint:
                     self.update_param_and_fields("{reason}:SP".format(reason=reason), new_pv_value)
@@ -271,9 +273,6 @@ class LSiCorrelatorDriver(Driver):
     def take_data(self):
         """
         Sends settings parameters to the LSi driver and takes data from the LSi Correlator with the given number of repetitions.
-
-        Args:
-            number_of_repetitions (int): The number of repetitions to perform.
         """
         self.device.configure()
 
