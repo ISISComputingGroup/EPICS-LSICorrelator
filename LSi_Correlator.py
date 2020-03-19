@@ -58,7 +58,7 @@ class LSiCorrelatorDriver(Driver):
 
         Args:
             host: The IP address of the LSi Correlator
-            firmware: The firmware revision of the LSi Correlator
+            firmware_revision: The firmware revision of the LSi Correlator
             filepath: The directory in which to place data files
         """
         super(LSiCorrelatorDriver, self).__init__()
@@ -295,12 +295,12 @@ class LSiCorrelatorDriver(Driver):
                 self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected", "INVALID")
                 self.set_disconnected_alarms(True)
             else:
-                Corr, Lags, trace_A, trace_B = self.get_data_as_arrays()
+                corr, lags, trace_a, trace_b = self.get_data_as_arrays()
 
-                self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, Corr)
-                self.set_array_pv_value(Records.LAGS.name, Lags)
+                self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, corr)
+                self.set_array_pv_value(Records.LAGS.name, lags)
 
-                self.save_data(Corr, Lags, trace_A, trace_B)
+                self.save_data(corr, lags, trace_a, trace_b)
 
         # Attempt to set start PV back to NO, purely for aesthetics (this PV is actually always ready)
         self.update_param_and_fields(Records.START.name, 0)
@@ -317,19 +317,21 @@ class LSiCorrelatorDriver(Driver):
 
         return "{filepath}/{filename}_{timestamp}".format(filepath=filepath, filename=filename, timestamp=timestamp)
 
-    def save_data(self, correlation, time_lags, trace_A, trace_B):
+    def save_data(self, correlation, time_lags, trace_a, trace_b):
         """
         Write the correlation function and time lags to file.
 
         Args:
             correlation (float array): The correlation function
             time_lags (float array): The time lags
+            trace_a (float array): The 'raw' trace A counts from the correlator
+            trace_b (float array): The 'raw' trace B from the correlator
         """
 
         filename = self.add_timestamp_to_filename()
 
         correlation_data = np.vstack((time_lags, correlation)).T
-        raw_channel_data = np.vstack((trace_A, trace_B)).T
+        raw_channel_data = np.vstack((trace_a, trace_b)).T
         metadata_variables = [
             Records.SCATTERING_ANGLE.name,
             Records.SAMPLE_TEMP.name,
@@ -361,12 +363,8 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     """
     Server the PVs for the remote ioc server
     Args:
-        ioc_numer: The number of the IOC to be run (e.g. 1 for LSICORR_01)
+        ioc_number: The number of the IOC to be run (e.g. 1 for LSICORR_01)
         pv_prefix: prefix for the pvs
-        subsystem_prefix: prefix for the PVs published by the remote IOC server
-        gateway_pvlist_path: The path to the gateway pvlist file to generate
-        gateway_acf_path: The path to the gateway access security file to generate
-        gateway_restart_script_path: The path to the script to call to restart the remote ioc gateway
 
     Returns:
 
