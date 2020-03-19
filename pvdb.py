@@ -128,7 +128,8 @@ class Records(Enum):
     FILENAME = Record("FILENAME",
                       CHAR_PV_FIELDS,
                       convert_from_pv=do_nothing,
-                      convert_to_pv=do_nothing
+                      convert_to_pv=do_nothing,
+                      has_setpoint=True
                       )
 
     START = Record("START",
