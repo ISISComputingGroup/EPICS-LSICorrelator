@@ -20,3 +20,5 @@ relPaths.sh
 *.py[cod]
 .idea
 .vscode/
+__pycache__/
+
