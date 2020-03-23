@@ -125,7 +125,7 @@ class Records(Enum):
                       has_setpoint=True
                       )
 
-    OUTPUTFILE = Record("OUTPUTFILE",
+    FILEPATH = Record("FILEPATH",
                       CHAR_PV_FIELDS,
                       convert_from_pv=do_nothing,
                       convert_to_pv=do_nothing,

@@ -112,8 +112,8 @@ class LSiCorrelatorDriver(Driver):
         THREADPOOL.submit(self.update_output_file)
 
         if os.path.isdir(filepath):
-            self.update_pv_and_write_to_device(Records.OUTPUTFILE.value.name, filepath)
-            print_and_log("setting OUTPUTFILE to {}".format(filepath))
+            self.update_pv_and_write_to_device(Records.FILEPATH.value.name, filepath)
+            print_and_log("setting FILEPATH to {}".format(filepath))
         else:
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
 
