@@ -9,7 +9,7 @@ from LSICorrelator import LSICorrelator
 from LSI import LSI_Param
 
 from record import (Record, populate_enum_pv, float_pv_with_unit, do_nothing,
-                    PARAM_FIELDS_BINARY, INT_AS_FLOAT_PV, CHAR_PV_FIELDS)
+                    PARAM_FIELDS_BINARY, INT_AS_FLOAT_PV, CHAR_PV_FIELDS, FLOAT_ARRAY)
 
 
 def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
@@ -67,7 +67,6 @@ class Records(Enum):
     MEASUREMENTDURATION = Record("MEASUREMENTDURATION",
                                  INT_AS_FLOAT_PV,
                                  convert_from_pv=round,
-                                 convert_to_pv=do_nothing,
                                  device_setter=LSICorrelator.setMeasurementDuration,
                                  has_setpoint=True
                                  )
@@ -99,7 +98,6 @@ class Records(Enum):
     OVERLOADLIMIT = Record("OVERLOADLIMIT",
                            {'type': 'float', 'prec': 0, 'value': 0.0, 'unit': 'Mcps'},
                            convert_from_pv=round,
-                           convert_to_pv=do_nothing,
                            device_setter=LSICorrelator.setOverloadLimit,
                            has_setpoint=True
                            )
@@ -107,127 +105,85 @@ class Records(Enum):
     OVERLOADINTERVAL = Record("OVERLOADINTERVAL",
                               INT_AS_FLOAT_PV,
                               convert_from_pv=round,
-                              convert_to_pv=do_nothing,
                               device_setter=LSICorrelator.setOverloadTimeInterval,
                               has_setpoint=True
                               )
 
     ERRORMSG = Record("ERRORMSG",
-                      CHAR_PV_FIELDS,
-                      convert_from_pv=do_nothing,
-                      convert_to_pv=do_nothing
+                      CHAR_PV_FIELDS
                       )
 
     FILEPATH = Record("FILEPATH",
                       CHAR_PV_FIELDS,
-                      convert_from_pv=do_nothing,
-                      convert_to_pv=do_nothing,
                       has_setpoint=True
                       )
 
     FILENAME = Record("FILENAME",
                       CHAR_PV_FIELDS,
-                      convert_from_pv=do_nothing,
-                      convert_to_pv=do_nothing,
                       has_setpoint=True
                       )
 
     START = Record("START",
                    PARAM_FIELDS_BINARY,
-                   convert_from_pv=bool,
-                   convert_to_pv=do_nothing,
                    has_setpoint=True
                    )
 
     STOP = Record("STOP",
                   PARAM_FIELDS_BINARY,
                   convert_from_pv=bool,
-                  convert_to_pv=do_nothing,
-                  device_setter=stop_device,
                   has_setpoint=True
                   )
 
-    CORRELATION_FUNCTION = Record("CORRELATION_FUNCTION",
-                                  {'type': 'float', 'count': 400},
-                                  convert_from_pv=do_nothing,
-                                  convert_to_pv=do_nothing,
-                                  )
+    CORRELATION_FUNCTION = Record("CORRELATION_FUNCTION", FLOAT_ARRAY)
 
-    LAGS = Record("LAGS",
-                  {'type': 'float', 'count': 400},
-                  convert_from_pv=do_nothing,
-                  convert_to_pv=do_nothing,
-                  )
+    LAGS = Record("LAGS", FLOAT_ARRAY)
 
-    TRACEA = Record("TRACEA",
-                    {'type': 'float', 'count': 400},
-                    convert_from_pv=do_nothing,
-                    convert_to_pv=do_nothing,
-                    )
+    TRACEA = Record("TRACEA", FLOAT_ARRAY)
 
-    TRACEB = Record("TRACEB",
-                    {'type': 'float', 'count': 400},
-                    convert_from_pv=do_nothing,
-                    convert_to_pv=do_nothing,
-                    )
+    TRACEB = Record("TRACEB", FLOAT_ARRAY)
 
     REPETITIONS = Record("REPETITIONS",
                          INT_AS_FLOAT_PV,
                          convert_from_pv=round,
-                         convert_to_pv=do_nothing,
                          has_setpoint=True
                          )
 
     CURRENT_REPETITION = Record("CURRENT_REPETITION",
-                                INT_AS_FLOAT_PV,
-                                convert_from_pv=do_nothing,
-                                convert_to_pv=do_nothing
+                                INT_AS_FLOAT_PV
                                 )
 
     RUNNING = Record("RUNNING",
                      PARAM_FIELDS_BINARY,
-                     convert_from_pv=bool,
-                     convert_to_pv=do_nothing
+                     convert_from_pv=bool
                      )
 
     CONNECTED = Record("CONNECTED",
                        PARAM_FIELDS_BINARY,
-                       convert_from_pv=bool,
-                       convert_to_pv=do_nothing
+                       convert_from_pv=bool
                        )
 
     SCATTERING_ANGLE = Record("SCATTERING_ANGLE",
                               float_pv_with_unit("degree"),
-                              convert_from_pv=do_nothing,
-                              convert_to_pv=do_nothing,
                               has_setpoint=True
                               )
 
     SAMPLE_TEMP = Record("SAMPLE_TEMP",
                          float_pv_with_unit("K"),
-                         convert_from_pv=do_nothing,
-                         convert_to_pv=do_nothing,
                          has_setpoint=True
                          )
 
     SOLVENT_VISCOSITY = Record("SOLVENT_VISCOSITY",
                                float_pv_with_unit("mPas"),
-                               convert_from_pv=do_nothing,
-                               convert_to_pv=do_nothing,
                                has_setpoint=True
                                )
 
     SOLVENT_REFRACTIVE_INDEX = Record("SOLVENT_REFRACTIVE_INDEX",
                                       float_pv_with_unit(""),
-                                      convert_from_pv=do_nothing,
-                                      convert_to_pv=do_nothing,
                                       has_setpoint=True
                                       )
 
     LASER_WAVELENGTH = Record("LASER_WAVELENGTH",
                               float_pv_with_unit("nm"),
-                              convert_from_pv=do_nothing,
-                              convert_to_pv=do_nothing,
                               has_setpoint=True
                               )
 
