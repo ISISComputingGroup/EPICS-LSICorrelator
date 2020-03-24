@@ -131,25 +131,21 @@ class LSiCorrelatorDriver(Driver):
         for record in Records:
             self.setParamStatus(record.name, status, severity)
 
-    def get_pv_value(self, reason):
+    def get_converted_pv_value(self, reason):
         """
-        Gets the current value of reason in the PCASpy driver (the 'pv').
-        If the supplied reason has an available record, the pv value is sanitised through convert_from_pv.
+        If the supplied reason has a defining record, applies the convert_from_pv transformation to current pv value
+        else returns current pv value.
 
         Args:
             reason (str): The name of the PV to get the value of
         """
-        if reason.endswith(":SP"):
-            # Return value of base PV, not setpoint
-            reason = get_base_pv(reason)
-
-        pv_value = self.getParam(reason)
+        pv_value = self.read(reason)
 
         try:
             record = Records[reason].value
             sanitised_value = record.convert_from_pv(pv_value)
         except KeyError:
-            # Reason has no defining record
+            # reason has no defining record
             sanitised_value = pv_value
 
         return sanitised_value
@@ -276,7 +272,7 @@ class LSiCorrelatorDriver(Driver):
         """
         self.device.configure()
 
-        no_repetitions = self.get_pv_value(Records.REPETITIONS.name)
+        no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         for repeat in range(1, no_repetitions+1):
             self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
 
