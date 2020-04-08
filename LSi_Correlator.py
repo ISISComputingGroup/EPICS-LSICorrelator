@@ -16,7 +16,7 @@ from time import sleep
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "Support", "lsicorr_vendor", "master"))
+sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from LSI import LSI_Param
@@ -195,6 +195,9 @@ class LSiCorrelatorDriver(Driver):
                 if update_setpoint:
                     self.update_param_and_fields("{reason}:SP".format(reason=reason), new_pv_value)
 
+        # Update PVs after any write
+        self.updatePVs()
+
     def set_array_pv_value(self, reason, value):
         """
         Helper function to update the value of an array PV and the array PV fields (NORD)
@@ -222,9 +225,6 @@ class LSiCorrelatorDriver(Driver):
             THREADPOOL.submit(self.update_pv_and_write_to_device, get_base_pv(reason), value, update_setpoint=True)
         else:
             THREADPOOL.submit(self.update_pv_and_write_to_device, reason, value)
-
-        # Update PVs after any write.
-        self.updatePVs()
 
     @_error_handler
     def read(self, reason):
@@ -302,13 +302,16 @@ class LSiCorrelatorDriver(Driver):
         self.update_param_and_fields(Records.START.name, 0)
         self.update_param_and_fields("{pv}:SP".format(pv=Records.START.name), 0)
 
+        # Update PVs after any write
+        self.updatePVs()
+
     def add_timestamp_to_filename(self):
         """
         Adds a timestamp to the current filepath/filename
         """
 
-        filepath = self.get_pv_value(Records.FILEPATH.name)
-        filename = self.get_pv_value(Records.FILENAME.name)
+        filepath = self.get_converted_pv_value(Records.FILEPATH.name)
+        filename = self.get_converted_pv_value(Records.FILENAME.name)
         timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
 
         return "{filepath}/{filename}_{timestamp}".format(filepath=filepath, filename=filename, timestamp=timestamp)
@@ -350,7 +353,7 @@ class LSiCorrelatorDriver(Driver):
 
             for metadata_variable in metadata_variables:
                 f.write("# {variable}: {value}\n".format(variable=metadata_variable,
-                                                         value=self.get_pv_value(metadata_variable)))
+                                                         value=self.get_converted_pv_value(metadata_variable)))
             np.savetxt(f, correlation_data, delimiter=',', header='Time Lags,Correlation Function', fmt='%1.4e')
             np.savetxt(f, raw_channel_data, delimiter=',', header='\nTraceA,TraceB', fmt='%1.4e')
 
