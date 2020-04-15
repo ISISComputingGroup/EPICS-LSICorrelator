@@ -17,7 +17,7 @@ from time import sleep
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "Support", "lsicorr_vendor", "master"))
+sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from LSI import LSI_Param
@@ -52,7 +52,7 @@ def get_base_pv(reason: str):
 
 THREADPOOL = ThreadPoolExecutor()
 
-# Magic number, seems to be time between measurments.
+# Magic number, seems to be time between measurements.
 DELTA_T = 0.0524288
 
 
@@ -63,6 +63,16 @@ def remove_non_ascii(text_to_check):
     # Remove anything other than alphanumerics and dashes/underscores
     parsed_text = [char for char in text_to_check if char.isalnum() or char in '-_']
     return ''.join(parsed_text)
+
+
+def get_archive_filename():
+    """
+    Returns a filename which the archive data file will be saved with
+    """
+    filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
+    timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+    return filename.format(instrument=g.get_instrument(), run_number=g.get_runnumber(), timestamp=timestamp)
+
 
 class LSiCorrelatorDriver(Driver):
     """
@@ -225,6 +235,7 @@ class LSiCorrelatorDriver(Driver):
                 if update_setpoint:
                     self.update_param_and_fields("{reason}:SP".format(reason=reason), new_pv_value)
 
+        # Update PVs after any write
         self.updatePVs()
 
     def set_array_pv_value(self, reason, value):
@@ -255,9 +266,6 @@ class LSiCorrelatorDriver(Driver):
         else:
             THREADPOOL.submit(self.update_pv_and_write_to_device, reason, value)
 
-        # Update PVs after any write.
-        self.updatePVs()
-
     @_error_handler
     def read(self, reason):
         """
@@ -277,7 +285,7 @@ class LSiCorrelatorDriver(Driver):
 
     def get_data_as_arrays(self):
         """
-        Converts the correlation function, time lags and raw traces as numpy arrays.
+        Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
         The correlation function and time lags are filtered to finite values only.
 
         Returns:
@@ -285,6 +293,7 @@ class LSiCorrelatorDriver(Driver):
             Lags (ndarray): Time lags where the correlation function is finite
             trace_A (ndarray): Raw photon counts for channel A
             trace_B (ndarray): Raw photon counts for channel B
+            trace_time (ndarray): Time trace constructed from length of raw data
         """
         corr = np.asarray(self.device.Correlation)
         lags = np.asarray(self.device.Lags)
@@ -295,7 +304,10 @@ class LSiCorrelatorDriver(Driver):
         trace_a = np.asarray(self.device.TraceChA)
         trace_b = np.asarray(self.device.TraceChB)
 
-        return corr, lags, trace_a, trace_b
+        # Time axis is number of data points collected * scaling factor
+        trace_time = np.arange(len(trace_a))*DELTA_T
+
+        return corr, lags, trace_a, trace_b, trace_time
 
     @_error_handler
     def take_data(self):
@@ -323,13 +335,10 @@ class LSiCorrelatorDriver(Driver):
                 self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected", "INVALID")
                 self.set_disconnected_alarms(True)
             else:
-                corr, lags, trace_a, trace_b = self.get_data_as_arrays()
+                corr, lags, trace_a, trace_b, time_trace = self.get_data_as_arrays()
 
                 self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, corr)
                 self.set_array_pv_value(Records.LAGS.name, lags)
-
-                # Time axis is number of data points collected * scaling factor
-                time_trace = np.arange(len(self.device.TraceChA))*DELTA_T
 
                 self.save_data(corr, lags, trace_a, trace_b, time_trace)
 
@@ -337,17 +346,17 @@ class LSiCorrelatorDriver(Driver):
         self.update_param_and_fields(Records.START.name, 0)
         self.update_param_and_fields("{pv}:SP".format(pv=Records.START.name), 0)
 
-    def get_archive_filename(self):
-        """
-        Returns a filename which the archive data file will be saved with
-        """
-        filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-        return filename.format(instrument=g.get_instrument(), run_number=g.get_runnumber(), timestamp=timestamp)
+#    def get_archive_filename(self):
+#        """
+#        Returns a filename which the archive data file will be saved with
+#        """
+#        filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
+#        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+#        return filename.format(instrument=g.get_instrument(), run_number=g.get_runnumber(), timestamp=timestamp)
 
     def get_user_filename(self):
         """ Returns a default filename from the current run number and title """
-        experiment_name = self.get_pv_value(Records.EXPERIMENTNAME.name)
+        experiment_name = self.get_converted_pv_value(Records.EXPERIMENTNAME.name)
         run_number = g.get_runnumber()
         timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
 
@@ -374,7 +383,7 @@ class LSiCorrelatorDriver(Driver):
             trace_time (float array): The elapsed time at which each raw data point was collected
         """
         user_filename = os.path.join(self.user_filepath, self.get_user_filename())
-        archive_filename = os.path.join(DATA_DIR, self.get_archive_filename())
+        archive_filename = os.path.join(DATA_DIR, get_archive_filename())
 
         correlation_data = np.vstack((time_lags, correlation)).T
         raw_channel_data = np.vstack((trace_time, trace_a, trace_b)).T
@@ -389,12 +398,12 @@ class LSiCorrelatorDriver(Driver):
 
         save_file = FILE_SCHEME.format(
             datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
-            scattering_angle=self.get_pv_value(Records.SCATTERING_ANGLE.name),
-            duration=self.get_pv_value(Records.MEASUREMENTDURATION.name),
-            wavelength=self.get_pv_value(Records.LASER_WAVELENGTH.name),
-            refractive_index=self.get_pv_value(Records.SOLVENT_REFRACTIVE_INDEX.name),
-            viscosity=self.get_pv_value(Records.SOLVENT_VISCOSITY.name),
-            temperature=self.get_pv_value(Records.SAMPLE_TEMP.name),
+            scattering_angle=self.get_converted_pv_value(Records.SCATTERING_ANGLE.name),
+            duration=self.get_converted_pv_value(Records.MEASUREMENTDURATION.name),
+            wavelength=self.get_converted_pv_value(Records.LASER_WAVELENGTH.name),
+            refractive_index=self.get_converted_pv_value(Records.SOLVENT_REFRACTIVE_INDEX.name),
+            viscosity=self.get_converted_pv_value(Records.SOLVENT_VISCOSITY.name),
+            temperature=self.get_converted_pv_value(Records.SAMPLE_TEMP.name),
             avg_count_A=np.mean(trace_a),
             avg_count_B=np.mean(trace_b),
             correlation_function=correlation_string,
