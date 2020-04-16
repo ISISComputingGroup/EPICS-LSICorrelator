@@ -108,6 +108,7 @@ class LSiCorrelatorDriver(Driver):
             Records.SOLVENT_VISCOSITY.value: 1100,
             Records.SOLVENT_REFRACTIVE_INDEX.value: 1.1,
             Records.LASER_WAVELENGTH.value: 440,
+            Records.OUTPUTFILE.value: "No data taken yet",
             Records.SIM.value: 0,
             Records.DISABLE.value: 0
         }
@@ -356,7 +357,7 @@ class LSiCorrelatorDriver(Driver):
             )
 
         # Update last used filename PV
-        self.update_pv_value_and_write_to_device(Records.OUTPUTFILE.name, filename)
+        self.update_pv_and_write_to_device(Records.OUTPUTFILE.name, os.path.join(self.user_filepath, filename))
 
         return filename
 
