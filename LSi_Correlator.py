@@ -117,8 +117,6 @@ class LSiCorrelatorDriver(Driver):
         self.alarm_status = Alarm.NO_ALARM
         self.alarm_severity = Severity.NO_ALARM
 
-        THREADPOOL.submit(self.update_output_file)
-
         if not os.path.isdir(filepath):
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
 
