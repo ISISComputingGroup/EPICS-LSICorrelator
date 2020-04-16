@@ -28,9 +28,9 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
+from server_common.channel_access import ChannelAccess
 from file_format import FILE_SCHEME
 from pathlib import Path
-from genie_python import genie as g
 
 DATA_DIR = ""
 
@@ -55,6 +55,11 @@ THREADPOOL = ThreadPoolExecutor()
 # Magic number, seems to be time between measurements.
 DELTA_T = 0.0524288
 
+# PVs from the DAE to get information about instrument
+RUNNUMBER_PV = "{pv_prefix}DAE:RUNNUMBER"
+TITLE_PV = "{pv_prefix}DAE:TITLE"
+INSTNAME_PV = "{pv_prefix}DAE:INSTNAME"
+
 
 def remove_non_ascii(text_to_check):
     """
@@ -65,21 +70,13 @@ def remove_non_ascii(text_to_check):
     return ''.join(parsed_text)
 
 
-def get_archive_filename():
-    """
-    Returns a filename which the archive data file will be saved with
-    """
-    filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
-    timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-    return filename.format(instrument=g.get_instrument(), run_number=g.get_runnumber(), timestamp=timestamp)
-
 
 class LSiCorrelatorDriver(Driver):
     """
     A driver for the LSi Correlator
     """
 
-    def __init__(self, host: str, firmware_revision: str, filepath: str):
+    def __init__(self, host: str, pv_prefix: str, firmware_revision: str, filepath: str):
         """
         A driver for the LSi Correlator
 
@@ -91,6 +88,7 @@ class LSiCorrelatorDriver(Driver):
         super(LSiCorrelatorDriver, self).__init__()
 
         self.device = LSICorrelator(host, firmware_revision)
+        self.pv_prefix = pv_prefix
 
         defaults = {
             Records.CORRELATIONTYPE.value: LSI_Param.CorrelationType.AUTO,
@@ -346,27 +344,29 @@ class LSiCorrelatorDriver(Driver):
         self.update_param_and_fields(Records.START.name, 0)
         self.update_param_and_fields("{pv}:SP".format(pv=Records.START.name), 0)
 
-#    def get_archive_filename(self):
-#        """
-#        Returns a filename which the archive data file will be saved with
-#        """
-#        filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
-#        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-#        return filename.format(instrument=g.get_instrument(), run_number=g.get_runnumber(), timestamp=timestamp)
+    def get_archive_filename(self):
+        """
+        Returns a filename which the archive data file will be saved with
+        """
+        filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+        run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
+        instrument = ChannelAccess.caget(INSTNAME_PV.format(pv_prefix=self.pv_prefix))
+        return filename.format(instrument=instrument, run_number=run_number, timestamp=timestamp)
 
     def get_user_filename(self):
-        """ Returns a default filename from the current run number and title """
-        experiment_name = self.get_converted_pv_value(Records.EXPERIMENTNAME.name)
-        run_number = g.get_runnumber()
+        """ Returns a filename given the current run number and title """
+        run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
         timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
 
+        experiment_name = self.get_converted_pv_value(Records.EXPERIMENTNAME.name)
+
         if experiment_name == "":
-            filename = "{run_number}_{title}_{timestamp}.dat".format(
-                run_number=run_number, title=remove_non_ascii(g.get_title()), timestamp=timestamp
-            )
-        else:
-            filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
-                run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
+            # No name supplied, use run title
+            experiment_name = ChannelAccess.caget(TITLE_PV.format(pv_prefix=self.pv_prefix))
+
+        filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
+            run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
             )
 
         return filename
@@ -383,7 +383,7 @@ class LSiCorrelatorDriver(Driver):
             trace_time (float array): The elapsed time at which each raw data point was collected
         """
         user_filename = os.path.join(self.user_filepath, self.get_user_filename())
-        archive_filename = os.path.join(DATA_DIR, get_archive_filename())
+        archive_filename = os.path.join(DATA_DIR, self.get_archive_filename())
 
         correlation_data = np.vstack((time_lags, correlation)).T
         raw_channel_data = np.vstack((trace_time, trace_a, trace_b)).T
@@ -438,7 +438,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     ip_address = '127.0.0.1'
     firmware_revision = '4.0.0.3'
     filepath = "C:\\Data"
-    LSiCorrelatorDriver(ip_address, firmware_revision, filepath)
+    LSiCorrelatorDriver(ip_address, pv_prefix, firmware_revision, filepath)
 
     # Clean up sys.argv path
     exepath = str(Path(sys.argv[0]))
