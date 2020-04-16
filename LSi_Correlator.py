@@ -119,27 +119,15 @@ class LSiCorrelatorDriver(Driver):
 
         THREADPOOL.submit(self.update_output_file)
 
-        if os.path.isdir(filepath):
-            self.update_pv_and_write_to_device(Records.FILEPATH.value.name, filepath)
-            print_and_log("setting FILEPATH to {}".format(filepath))
-        else:
+        if not os.path.isdir(filepath):
             self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
 
         for record, default_value in defaults.items():
             # Write defaults to device
-            print_and_log("setting {} to {}".format(record.name, default_value))
+            print_and_log("setting {} to default {}".format(record.name, default_value))
             self.update_pv_and_write_to_device(record.name, record.convert_to_pv(default_value))
 
         self.updatePVs()
-
-    def update_output_file(self):
-        """
-        Updates the PV containing the name of the user's data file
-        """
-        while True:
-            filename = self.get_user_filename()
-            self.update_pv_value_and_write_to_device(Records.OUTPUTFILE.name, filename)
-            sleep(10)
 
     def update_error_pv_print_and_log(self, error: str, severity: str = "INFO", src: str = "LSI") -> None:
         """
@@ -368,6 +356,9 @@ class LSiCorrelatorDriver(Driver):
         filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
             run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
             )
+
+        # Update last used filename PV
+        self.update_pv_value_and_write_to_device(Records.OUTPUTFILE.name, filename)
 
         return filename
 
