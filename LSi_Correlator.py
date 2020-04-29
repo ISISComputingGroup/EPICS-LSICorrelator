@@ -15,7 +15,6 @@ import numpy as np
 
 from time import sleep
 from datetime import datetime
-from pathlib import Path
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
@@ -32,7 +31,8 @@ from server_common.channel_access import ChannelAccess
 from file_format import FILE_SCHEME
 from pathlib import Path
 
-DATA_DIR = ""
+DATA_DIR = r"c:\Data"
+USER_FILE_DIR = r"c:\Data"
 
 
 def _error_handler(func):
@@ -68,7 +68,6 @@ def remove_non_ascii(text_to_check):
     # Remove anything other than alphanumerics and dashes/underscores
     parsed_text = [char for char in text_to_check if char.isalnum() or char in '-_']
     return ''.join(parsed_text)
-
 
 
 class LSiCorrelatorDriver(Driver):
@@ -297,7 +296,8 @@ class LSiCorrelatorDriver(Driver):
     @_error_handler
     def take_data(self):
         """
-        Sends settings parameters to the LSi driver and takes data from the LSi Correlator with the given number of repetitions.
+        Sends settings parameters to the LSi driver and takes data from the LSi Correlator with the given number of
+        repetitions.
         """
         self.device.configure()
 
@@ -317,7 +317,8 @@ class LSiCorrelatorDriver(Driver):
             if self.device.Correlation is None:
                 # No data returned, correlator may be disconnected
                 self.update_pv_and_write_to_device(Records.CONNECTED.name, False)
-                self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected", "INVALID")
+                self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected",
+                                                   "INVALID")
                 self.set_disconnected_alarms(True)
             else:
                 corr, lags, trace_a, trace_b, time_trace = self.get_data_as_arrays()
@@ -427,8 +428,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     # of how it achieves this.
     ip_address = '127.0.0.1'
     firmware_revision = '4.0.0.3'
-    filepath = "C:\\Data"
-    LSiCorrelatorDriver(ip_address, pv_prefix, firmware_revision, filepath)
+    LSiCorrelatorDriver(ip_address, pv_prefix, firmware_revision, USER_FILE_DIR)
 
     # Clean up sys.argv path
     exepath = str(Path(sys.argv[0]))
@@ -446,7 +446,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
 
 def main():
     """
-    Parse the command line argumnts and run the remote IOC server.
+    Parse the command line arguments and run the remote IOC server.
     """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
