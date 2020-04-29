@@ -113,15 +113,12 @@ class Records(Enum):
                       CHAR_PV_FIELDS
                       )
 
-    FILEPATH = Record("FILEPATH",
-                      CHAR_PV_FIELDS,
-                      has_setpoint=True
-                      )
+    EXPERIMENTNAME = Record("EXPERIMENTNAME",
+                            CHAR_PV_FIELDS,
+                            has_setpoint=True
+                            )
 
-    FILENAME = Record("FILENAME",
-                      CHAR_PV_FIELDS,
-                      has_setpoint=True
-                      )
+    OUTPUTFILE = Record("OUTPUTFILE", CHAR_PV_FIELDS)
 
     START = Record("START",
                    PARAM_FIELDS_BINARY,
