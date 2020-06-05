@@ -16,6 +16,7 @@ import numpy as np
 from time import sleep
 from datetime import datetime
 
+
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
@@ -25,11 +26,9 @@ from LSICorrelator import LSICorrelator
 from pvdb import STATIC_PV_DATABASE, Records
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
-from server_common.ioc_data_source import IocDataSource
-from server_common.mysql_abstraction_layer import SQLAbstraction
 from server_common.channel_access import ChannelAccess
+from server_common.helpers import register_ioc_start
 from file_format import FILE_SCHEME
-from pathlib import Path
 
 DATA_DIR = r"c:\Data"
 USER_FILE_DIR = r"c:\Data"
@@ -430,11 +429,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     firmware_revision = '4.0.0.3'
     LSiCorrelatorDriver(ip_address, pv_prefix, firmware_revision, USER_FILE_DIR)
 
-    # Clean up sys.argv path
-    exepath = str(Path(sys.argv[0]))
-
-    ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
-    ioc_data_source.insert_ioc_start(ioc_name, os.getpid(), exepath, STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
+    register_ioc_start(ioc_name, STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
 
     try:
         while True:
