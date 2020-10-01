@@ -5,6 +5,7 @@ import sys
 import os
 import traceback
 from io import StringIO
+from typing import Dict
 
 import six
 
@@ -27,7 +28,7 @@ from pvdb import STATIC_PV_DATABASE, Records
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.channel_access import ChannelAccess
-from server_common.helpers import register_ioc_start
+from server_common.helpers import register_ioc_start, get_macro_values
 from file_format import FILE_SCHEME
 
 DATA_DIR = r"c:\Data"
@@ -74,7 +75,7 @@ class LSiCorrelatorDriver(Driver):
     A driver for the LSi Correlator
     """
 
-    def __init__(self, host: str, pv_prefix: str, firmware_revision: str, filepath: str):
+    def __init__(self, host: str, pv_prefix: str, firmware_revision: str, filepath: str, macros: Dict[str, str]):
         """
         A driver for the LSi Correlator
 
@@ -82,8 +83,14 @@ class LSiCorrelatorDriver(Driver):
             host: The IP address of the LSi Correlator
             firmware_revision: The firmware revision of the LSi Correlator
             filepath: The directory in which to place data files
+            macros: Dictionary of macros for this IOC
         """
         super(LSiCorrelatorDriver, self).__init__()
+
+        self.macros = macros
+
+        if self.macros["SIM"] == "YES":
+            print("In simulation mode!")
 
         self.device = LSICorrelator(host, firmware_revision)
         self.pv_prefix = pv_prefix
@@ -405,17 +412,16 @@ class LSiCorrelatorDriver(Driver):
                 dat_file.write(save_file)
 
 
-def serve_forever(ioc_number: int, pv_prefix: str):
+def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]):
     """
     Server the PVs for the remote ioc server
     Args:
-        ioc_number: The number of the IOC to be run (e.g. 1 for LSICORR_01)
+        ioc_name: The name of the IOC to be run, including ioc number (e.g. LSICORR_01)
         pv_prefix: prefix for the pvs
-
+        macros: Dictionary containing IOC macros
     Returns:
 
     """
-    ioc_name = "LSICORR_{:02d}".format(ioc_number)
     ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(pv_prefix=pv_prefix, ioc_name=ioc_name)
     print_and_log(ioc_name_with_pv_prefix)
     server = SimpleServer()
@@ -427,7 +433,7 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     # of how it achieves this.
     ip_address = '127.0.0.1'
     firmware_revision = '4.0.0.3'
-    LSiCorrelatorDriver(ip_address, pv_prefix, firmware_revision, USER_FILE_DIR)
+    LSiCorrelatorDriver(ip_address, pv_prefix, firmware_revision, USER_FILE_DIR, macros)
 
     register_ioc_start(ioc_name, STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
 
@@ -459,9 +465,14 @@ def main():
 
     print("IOC started")
 
+    ioc_name = "LSICORR_{:02d}".format(args.ioc_number)
+
+    macros = get_macro_values()
+
     serve_forever(
-        args.ioc_number,
+        ioc_name,
         args.pv_prefix,
+        macros
     )
 
 
