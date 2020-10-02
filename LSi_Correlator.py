@@ -17,12 +17,12 @@ import numpy as np
 from time import sleep
 from datetime import datetime
 
-
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
+from mocked_correlator_api import MockedCorrelatorAPI
 
 from pvdb import STATIC_PV_DATABASE, Records
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
@@ -89,10 +89,12 @@ class LSiCorrelatorDriver(Driver):
 
         self.macros = macros
 
-        if self.macros["SIM"] == "YES":
-            print("In simulation mode!")
+        if macros["SIMULATE"] == "1":
+            print("WARNING! Started in simulation mode")
+            self.device = MockedCorrelatorAPI().device
+        else:
+            self.device = LSICorrelator(host, firmware_revision)
 
-        self.device = LSICorrelator(host, firmware_revision)
         self.pv_prefix = pv_prefix
 
         defaults = {
@@ -468,6 +470,9 @@ def main():
     ioc_name = "LSICORR_{:02d}".format(args.ioc_number)
 
     macros = get_macro_values()
+
+    import pprint
+    pprint.pprint(macros)
 
     serve_forever(
         ioc_name,
