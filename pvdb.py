@@ -36,13 +36,6 @@ def convert_lsi_enum_to_pv_value(enum_class, current_state):
     return enum_as_list.index(state_name)
 
 
-def stop_device(device, _):
-    """
-    Sends the stop device command
-    """
-    device.stop()
-
-
 class Records(Enum):
     @staticmethod
     def keys():

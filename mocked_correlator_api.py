@@ -1,6 +1,7 @@
 from mock import MagicMock
 from pvdb import Records
 
+
 import numpy as np
 from time import sleep
 
@@ -13,15 +14,21 @@ class MockedCorrelatorAPI:
         self.device = MagicMock()
 
         self.device.start = MagicMock(side_effect=self.start)
+        self.device.configure = MagicMock(side_effect=self.configure)
+        self.measurement_on = False
+        self.device.MeasurementOn = MagicMock(side_effect=self.is_measurement_on)
+
+    def is_measurement_on(self):
+        return self.measurement_on
 
     def start(self):
         """
         Switches the measurement on for 1 second, then off again to simulate the device taking a 1 second measurement
         """
         print("Starting!")
-        self.device.MeasurementOn = MagicMock(return_value=True)
+        self.measurement_on = True
         sleep(1.0)
-        self.device.MeasurementOn = MagicMock(return_value=False)
+        self.measurement_on = False
 
         fake_data = np.linspace(0, elements_in_float_array, elements_in_float_array)
 
@@ -31,3 +38,7 @@ class MockedCorrelatorAPI:
         self.device.TraceChB = fake_data
 
         print("Done!")
+
+    def configure(self):
+        if self.device.MeasurementOn():
+            raise RuntimeError("LSI --- Cannot configure: Measurement active")

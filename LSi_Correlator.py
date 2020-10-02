@@ -307,7 +307,10 @@ class LSiCorrelatorDriver(Driver):
         Sends settings parameters to the LSi driver and takes data from the LSi Correlator with the given number of
         repetitions.
         """
-        self.device.configure()
+        try:
+            self.device.configure()
+        except RuntimeError as e:
+            self.update_error_pv_print_and_log(str(e))
 
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         for repeat in range(1, no_repetitions+1):
