@@ -6,6 +6,7 @@ from time import sleep
 
 elements_in_float_array = Records.CORRELATION_FUNCTION.value.database_entries["CORRELATION_FUNCTION"]["count"]
 
+DATA_USED_IN_IOC_SYSTEM_TESTS = np.linspace(0, elements_in_float_array, elements_in_float_array)
 
 class MockedCorrelatorAPI:
     def __init__(self):
@@ -19,7 +20,10 @@ class MockedCorrelatorAPI:
         self.device.measurement_on = False
         self.device.disconnected = False
 
-        self.fake_data = np.linspace(0, elements_in_float_array, elements_in_float_array)
+        self.corr = DATA_USED_IN_IOC_SYSTEM_TESTS
+        self.lags = DATA_USED_IN_IOC_SYSTEM_TESTS
+        self.trace_a = DATA_USED_IN_IOC_SYSTEM_TESTS
+        self.trace_b = DATA_USED_IN_IOC_SYSTEM_TESTS
 
 
     def is_measurement_on(self):
@@ -34,17 +38,17 @@ class MockedCorrelatorAPI:
         sleep(1.0)
         self.device.measurement_on = False
 
-        if not self.device.disconnected:
-            fake_data = self.fake_data
+        if self.device.disconnected:
+            corr = None
         else:
-            fake_data = None
+            corr = self.corr
 
         # print(self.fake_data)
 
-        self.device.Correlation = fake_data
-        self.device.Lags = fake_data
-        self.device.TraceChA = fake_data
-        self.device.TraceChB = fake_data
+        self.device.Correlation = corr
+        self.device.Lags = self.lags
+        self.device.TraceChA = self.trace_a
+        self.device.TraceChB = self.trace_b
 
         print("Done!")
 

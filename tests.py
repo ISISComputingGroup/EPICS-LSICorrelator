@@ -40,10 +40,9 @@ class LSICorrelatorTests(unittest.TestCase):
 
     def test_GIVEN_device_connected_WHEN_data_taken_THEN_correlation_function_and_time_lags_returned(self):
 
-        self.mocked_api.fake_data = test_data.corr
+        self.mocked_api.corr = test_data.corr
+        self.mocked_api.lags = test_data.lags
         self.driver.take_data()
 
-        # print(self.driver.corr)
-
         self.assertTrue(np.allclose(self.driver.corr, test_data.corr_without_nans))
-        #self.assertTrue(np.allclose(self.driver.lags, test_data))
+        self.assertTrue(np.allclose(self.driver.lags, test_data.lags_without_nans))
