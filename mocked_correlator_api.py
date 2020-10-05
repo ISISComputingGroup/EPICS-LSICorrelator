@@ -33,7 +33,10 @@ class MockedCorrelatorAPI:
         sleep(1.0)
         self.device.measurement_on = False
 
-        fake_data = np.linspace(0, elements_in_float_array, elements_in_float_array)
+        if not self.device.disconnected:
+            fake_data = np.linspace(0, elements_in_float_array, elements_in_float_array)
+        else:
+            fake_data = None
 
         self.device.Correlation = fake_data
         self.device.Lags = fake_data

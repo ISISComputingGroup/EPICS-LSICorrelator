@@ -1,10 +1,9 @@
 import unittest
 
-from LSi_Correlator import LSiCorrelatorDriver, serve_forever
-from pvdb import Records, STATIC_PV_DATABASE
-from pcaspy import SimpleServer
+from correlator_driver_functions import LSiCorrelatorDriver
+from pvdb import Records
 
-macros = {"SIMULATE": 1}
+macros = {"SIMULATE": "1"}
 pv_prefix = "TE:NDW1836"
 ioc_name = "LSICORR_01"
 
@@ -15,19 +14,16 @@ class LSICorrelatorTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self.server_thread, self.driver = serve_forever(ioc_name, pv_prefix, macros)
+        self.driver = LSiCorrelatorDriver("127.0.0.1", "", "", macros)
 
         self.mocked_api = self.driver.device
+        self.mocked_api.disconnected = False
 
-        self.addModuleCleanup(self.server_thread.stop)
-
-
-    def test_GIVEN_device_disconnected_WHEN_data_taken_THEN_connected_is_false_and_PVs_go_into_alarm(self):
-        # self.assertEqual(self.driver.read(Records.CONNECTED.name), "YES")
-        print(self.driver.read(Records.CONNECTED.name))
-
+    def test_GIVEN_device_disconnected_WHEN_data_taken_THEN_deivce_reads_no_data_and_disconnected(self):
+        self.assertTrue(self.driver.is_connected)
         self.mocked_api.disconnected = True
 
         self.driver.take_data()
 
-        self.assertEqual(self.driver.read(Records.CONNECTED.name), "NO")
+        self.assertFalse(self.driver.has_data)
+        self.assertFalse(self.driver.is_connected)

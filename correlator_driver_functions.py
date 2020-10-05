@@ -64,7 +64,7 @@ class LSiCorrelatorDriver():
     A driver for the LSi Correlator
     """
 
-    def __init__(self, host: str, pv_prefix: str, firmware_revision: str, filepath: str, macros: Dict[str, str]):
+    def __init__(self, host: str, firmware_revision: str, filepath: str, macros: Dict[str, str]):
         """
         A driver for the LSi Correlator
 
