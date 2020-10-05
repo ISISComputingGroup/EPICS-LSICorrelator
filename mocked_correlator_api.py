@@ -15,20 +15,23 @@ class MockedCorrelatorAPI:
 
         self.device.start = MagicMock(side_effect=self.start)
         self.device.configure = MagicMock(side_effect=self.configure)
-        self.measurement_on = False
+
         self.device.MeasurementOn = MagicMock(side_effect=self.is_measurement_on)
 
+        self.device.measurement_on = False
+        self.device.disconnected = False
+
     def is_measurement_on(self):
-        return self.measurement_on
+        return self.device.measurement_on
 
     def start(self):
         """
         Switches the measurement on for 1 second, then off again to simulate the device taking a 1 second measurement
         """
         print("Starting!")
-        self.measurement_on = True
+        self.device.measurement_on = True
         sleep(1.0)
-        self.measurement_on = False
+        self.device.measurement_on = False
 
         fake_data = np.linspace(0, elements_in_float_array, elements_in_float_array)
 
@@ -42,3 +45,6 @@ class MockedCorrelatorAPI:
     def configure(self):
         if self.device.MeasurementOn():
             raise RuntimeError("LSI --- Cannot configure: Measurement active")
+
+        if self.device.disconnected:
+            raise RuntimeError("LSI --- Cannot configure: Correlator disconnected or measurement active")
