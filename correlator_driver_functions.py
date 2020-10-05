@@ -78,7 +78,8 @@ class LSiCorrelatorDriver():
 
         if macros["SIMULATE"] == "1":
             print("WARNING! Started in simulation mode")
-            self.device = MockedCorrelatorAPI().device
+            self.mocked_api = MockedCorrelatorAPI()
+            self.device = self.mocked_api.device
         else:
             self.device = LSICorrelator(host, firmware_revision)
 
@@ -137,6 +138,8 @@ class LSiCorrelatorDriver():
         else:
             self.has_data = True
             corr, lags, _, _, _ = self.get_data_as_arrays()
+            # print(corr)
+            # print(lags)
             self.corr = corr
             self.lags = lags
 

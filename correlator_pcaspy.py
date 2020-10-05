@@ -89,7 +89,7 @@ class LSiPcaspy(Driver):
         """
         super().__init__()
 
-        self.driver = LSiCorrelatorDriver(host, pv_prefix, firmware_revision, filepath, macros)
+        self.driver = LSiCorrelatorDriver(host, firmware_revision, filepath, macros)
 
         self.macros = macros
 
