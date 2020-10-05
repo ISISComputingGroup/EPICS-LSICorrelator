@@ -4,6 +4,8 @@ import numpy as np
 from correlator_driver_functions import LSiCorrelatorDriver
 from pvdb import Records
 
+from test_utils import test_data
+
 macros = {"SIMULATE": "1"}
 pv_prefix = "TE:NDW1836"
 ioc_name = "LSICORR_01"
@@ -37,15 +39,11 @@ class LSICorrelatorTests(unittest.TestCase):
         self.assertTrue(self.driver.is_connected)
 
     def test_GIVEN_device_connected_WHEN_data_taken_THEN_correlation_function_and_time_lags_returned(self):
-        test_data = np.linspace(0, 10, 10)
-        print(repr(self.driver.device))
-        print(repr(self.mocked_api))
 
-        self.mocked_api.fake_data = test_data
+        self.mocked_api.fake_data = test_data.corr
         self.driver.take_data()
 
         # print(self.driver.corr)
 
-
-        self.assertTrue(np.allclose(self.driver.corr, test_data))
+        self.assertTrue(np.allclose(self.driver.corr, test_data.corr_without_nans))
         #self.assertTrue(np.allclose(self.driver.lags, test_data))

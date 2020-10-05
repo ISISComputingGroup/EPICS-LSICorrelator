@@ -1,11 +1,9 @@
 from mock import MagicMock
 from pvdb import Records
 
-
 import numpy as np
 from time import sleep
 
-print(Records.CORRELATION_FUNCTION.value.database_entries)
 elements_in_float_array = Records.CORRELATION_FUNCTION.value.database_entries["CORRELATION_FUNCTION"]["count"]
 
 

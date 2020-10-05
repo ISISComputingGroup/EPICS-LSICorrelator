@@ -17,15 +17,15 @@ from datetime import datetime
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
-from LSI import LSI_Param
+# from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 from mocked_correlator_api import MockedCorrelatorAPI
 
-from pvdb import STATIC_PV_DATABASE, Records
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from pvdb import Records
+# from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
-from server_common.channel_access import ChannelAccess
-from server_common.helpers import register_ioc_start, get_macro_values
+# from server_common.channel_access import ChannelAccess
+# from server_common.helpers import register_ioc_start, get_macro_values
 from file_format import FILE_SCHEME
 
 DATA_DIR = r"c:\Data"
@@ -41,13 +41,14 @@ def _error_handler(func):
             print_and_log(traceback.format_exc(), src="lsi ")
     return _wrapper
 
+
 # Magic number, seems to be time between measurements.
 DELTA_T = 0.0524288
 
 # PVs from the DAE to get information about instrument
-RUNNUMBER_PV = "{pv_prefix}DAE:RUNNUMBER"
-TITLE_PV = "{pv_prefix}DAE:TITLE"
-INSTNAME_PV = "{pv_prefix}DAE:INSTNAME"
+# RUNNUMBER_PV = "{pv_prefix}DAE:RUNNUMBER"
+# TITLE_PV = "{pv_prefix}DAE:TITLE"
+# INSTNAME_PV = "{pv_prefix}DAE:INSTNAME"
 
 
 def remove_non_ascii(text_to_check):
