@@ -6,7 +6,11 @@ from pvdb import Records
 
 from test_utils import test_data
 
-macros = {"SIMULATE": "1"}
+macros = {
+    "SIMULATE": "1",
+    "ADDR": "127.0.0.1",
+    "FIRMWARE_REVISION": "4.0.0.3"
+    }
 pv_prefix = "TE:NDW1836"
 ioc_name = "LSICORR_01"
 
@@ -17,7 +21,7 @@ class LSICorrelatorTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self.driver = LSiCorrelatorDriver("127.0.0.1", "", "", macros)
+        self.driver = LSiCorrelatorDriver(macros)
 
         self.mocked_api = self.driver.mocked_api
         self.device = self.driver.device
