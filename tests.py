@@ -23,7 +23,7 @@ class LSICorrelatorTests(unittest.TestCase):
         self.device = self.driver.device
         self.mocked_api.disconnected = False
 
-    def test_GIVEN_device_disconnected_WHEN_data_taken_THEN_deivce_reads_no_data_and_disconnected(self):
+    def test_GIVEN_device_disconnected_WHEN_data_taken_THEN_device_reads_no_data_and_disconnected(self):
         self.assertTrue(self.driver.is_connected)
         self.device.disconnected = True
 
@@ -46,3 +46,11 @@ class LSICorrelatorTests(unittest.TestCase):
 
         self.assertTrue(np.allclose(self.driver.corr, test_data.corr_without_nans))
         self.assertTrue(np.allclose(self.driver.lags, test_data.lags_without_nans))
+
+    def test_GIVEN_device_connected_WHEN_data_taken_THEN_start_called(self):
+        self.driver.take_data()
+        self.device.start.assert_called_once()
+
+
+if __name__ == '__main__':
+    unittest.main()
