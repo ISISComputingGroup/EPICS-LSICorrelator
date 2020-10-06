@@ -77,7 +77,7 @@ class LSiPcaspy(Driver):
     A driver for the LSi Correlator
     """
 
-    def __init__(self, host: str, pv_prefix: str, firmware_revision: str, filepath: str, macros: Dict[str, str]):
+    def __init__(self, pv_prefix: str, macros: Dict[str, str]):
         """
         A driver for the LSi Correlator
 
@@ -89,7 +89,12 @@ class LSiPcaspy(Driver):
         """
         super().__init__()
 
-        self.driver = LSiCorrelatorDriver(host, firmware_revision, filepath, macros)
+        try:
+            self.user_filepath = macros["FILEPATH"]
+        except KeyError:
+            raise RuntimeError("No file path specified to save data to")
+
+        self.driver = LSiCorrelatorDriver(macros)
 
         self.macros = macros
 
@@ -118,13 +123,11 @@ class LSiPcaspy(Driver):
             Records.DISABLE.value: 0
         }
 
-        self.user_filepath = filepath
-
         self.alarm_status = Alarm.NO_ALARM
         self.alarm_severity = Severity.NO_ALARM
 
-        if not os.path.isdir(filepath):
-            self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
+        if not os.path.isdir(self.user_filepath):
+            self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(user_filepath), "MAJOR")
 
         for record, default_value in defaults.items():
             # Write defaults to device
@@ -387,10 +390,9 @@ def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]):
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
     # of how it achieves this.
-    ip_address = '127.0.0.1'
-    firmware_revision = '4.0.0.3'
+
     # driver = LSiCorrelatorDriver(ip_address, pv_prefix, firmware_revision, USER_FILE_DIR, macros)
-    LSiPcaspy(ip_address, pv_prefix, firmware_revision, USER_FILE_DIR, macros)
+    LSiPcaspy(pv_prefix, macros)
 
     register_ioc_start(ioc_name, STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
 
