@@ -65,7 +65,7 @@ class LSiCorrelatorDriver():
     A driver for the LSi Correlator
     """
 
-    def __init__(self, host: str, firmware_revision: str, filepath: str, macros: Dict[str, str]):
+    def __init__(self, macros: Dict[str, str]):
         """
         A driver for the LSi Correlator
 
@@ -76,6 +76,15 @@ class LSiCorrelatorDriver():
             macros: Dictionary of macros for this IOC
         """
         self.macros = macros
+
+        try:
+            host = macros["ADDR"]
+        except KeyError:
+            raise RuntimeError("No IP address specified, cannot start")
+        try:
+            firmware_revision = macros["FIRMWARE_REVISION"]
+        except KeyError:
+            raise RuntimeError("No firmware revision specified, cannot start")
 
         if macros["SIMULATE"] == "1":
             print("WARNING! Started in simulation mode")
