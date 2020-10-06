@@ -38,7 +38,7 @@ class LSICorrelatorTests(unittest.TestCase):
         self.assertTrue(self.driver.has_data)
         self.assertTrue(self.driver.is_connected)
 
-    def test_GIVEN_device_connected_WHEN_data_taken_THEN_correlation_function_and_time_lags_returned(self):
+    def test_GIVEN_device_connected_WHEN_data_taken_THEN_driver_updated_with_correlation_and_time_lags(self):
 
         self.mocked_api.corr = test_data.corr
         self.mocked_api.lags = test_data.lags
@@ -46,3 +46,17 @@ class LSICorrelatorTests(unittest.TestCase):
 
         self.assertTrue(np.allclose(self.driver.corr, test_data.corr_without_nans))
         self.assertTrue(np.allclose(self.driver.lags, test_data.lags_without_nans))
+
+    def test_GIVEN_device_has_data_WHEN_data_retrieved_from_device_THEN_time_trace_made_and_no_nans_in_correlation(self):
+        self.device.Correlation = test_data.corr
+        self.device.Lags = test_data.lags
+        self.device.TraceChA = test_data.trace_a
+        self.device.TraceChB = test_data.trace_b
+
+        corr, lags, trace_a, trace_b, trace_time = self.driver.get_data_as_arrays()
+
+        self.assertTrue(np.allclose(corr, test_data.corr_without_nans))
+        self.assertTrue(np.allclose(lags, test_data.lags_without_nans))
+        self.assertTrue(np.allclose(trace_a, test_data.trace_a))
+        self.assertTrue(np.allclose(trace_b, test_data.trace_b))
+        self.assertTrue(np.allclose(trace_time, test_data.trace_time))

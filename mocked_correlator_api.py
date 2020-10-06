@@ -8,6 +8,7 @@ elements_in_float_array = Records.CORRELATION_FUNCTION.value.database_entries["C
 
 DATA_USED_IN_IOC_SYSTEM_TESTS = np.linspace(0, elements_in_float_array, elements_in_float_array)
 
+
 class MockedCorrelatorAPI:
     def __init__(self):
         self.device = MagicMock()
@@ -24,7 +25,6 @@ class MockedCorrelatorAPI:
         self.lags = DATA_USED_IN_IOC_SYSTEM_TESTS
         self.trace_a = DATA_USED_IN_IOC_SYSTEM_TESTS
         self.trace_b = DATA_USED_IN_IOC_SYSTEM_TESTS
-
 
     def is_measurement_on(self):
         return self.device.measurement_on

@@ -139,8 +139,6 @@ class LSiCorrelatorDriver():
         else:
             self.has_data = True
             corr, lags, _, _, _ = self.get_data_as_arrays()
-            # print(corr)
-            # print(lags)
             self.corr = corr
             self.lags = lags
 
