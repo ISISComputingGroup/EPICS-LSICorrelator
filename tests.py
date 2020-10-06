@@ -47,9 +47,15 @@ class LSICorrelatorTests(unittest.TestCase):
         self.assertTrue(np.allclose(self.driver.corr, test_data.corr_without_nans))
         self.assertTrue(np.allclose(self.driver.lags, test_data.lags_without_nans))
 
-    def test_GIVEN_device_connected_WHEN_data_taken_THEN_start_called(self):
+    def test_WHEN_data_taken_THEN_start_called(self):
         self.driver.take_data()
         self.device.start.assert_called_once()
+
+    def test_WHEN_data_taken_AND_measurement_on_THEN_update_called_WHEN_measurement_off_THEN_update_not_called(self):
+        starting_update_count = self.mocked_api.update_count
+        self.driver.take_data()
+        self.assertGreater(self.mocked_api.update_count, starting_update_count)
+        self.assertFalse(self.mocked_api.update_called_when_measurement_not_on)
 
 
 if __name__ == '__main__':
