@@ -5,7 +5,7 @@ import sys
 import os
 import traceback
 from io import StringIO
-from typing import Dict
+from typing import Dict, TextIO
 
 import six
 
@@ -142,16 +142,14 @@ class LSiCorrelatorDriver():
             self.corr = corr
             self.lags = lags
 
-    def save_data(self, user_filename: str, archive_filename: str, metadata: Dict):
+    def save_data(self, user_file: TextIO, archive_file: TextIO, metadata: Dict):
         """
         Write the correlation function and time lags to file.
 
         Args:
-            correlation (float array): The correlation function
-            time_lags (float array): The time lags
-            trace_a (float array): The 'raw' trace A counts from the correlator
-            trace_b (float array): The 'raw' trace B from the correlator
-            trace_time (float array): The elapsed time at which each raw data point was collected
+            user_file (file): The user file to write metadata, correlation, time_lags and the traces to
+            archive_file (file): The archive file to write metadata, correlation, time_lags and the traces to
+            metadata (dict): A dictionary of metadata to write to the file
         """
         correlation, time_lags, trace_a, trace_b, trace_time = self.get_data_as_arrays()
 
@@ -180,6 +178,5 @@ class LSiCorrelatorDriver():
             count_rate_history=raw_channel_data_string
         )
 
-        for filename in [user_filename, archive_filename]:
-            with open(filename, 'w+') as dat_file:
-                dat_file.write(save_file)
+        for dat_file in [user_file, archive_file]:
+            dat_file.write(save_file)

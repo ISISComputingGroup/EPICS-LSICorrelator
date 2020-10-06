@@ -298,7 +298,8 @@ class LSiPcaspy(Driver):
             if self.driver.has_data:
                 self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, self.driver.corr)
                 self.set_array_pv_value(Records.LAGS.name, self.driver.lags)
-                self.driver.save_data(self.get_user_filename(), self.get_archive_filename(), self.get_metadata())
+                with open(self.get_user_filename(), "w+") as user_file, open(self.get_archive_filename(), "w+") as archive_file:
+                    self.driver.save_data(user_file, archive_file, self.get_metadata())
             else:
                 # No data returned, correlator may be disconnected
                 self.update_pv_and_write_to_device(Records.CONNECTED.name, False)

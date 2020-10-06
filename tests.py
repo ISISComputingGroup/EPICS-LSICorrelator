@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+from tempfile import NamedTemporaryFile
 
 from correlator_driver_functions import LSiCorrelatorDriver
 from pvdb import Records
@@ -70,6 +71,42 @@ class LSICorrelatorTests(unittest.TestCase):
         self.driver.take_data()
         self.assertGreater(self.mocked_api.update_count, starting_update_count)
         self.assertFalse(self.mocked_api.update_called_when_measurement_not_on)
+
+    def test_WHEN_save_data_THEN_metadata_written_AND_correlation_data_written_AND_traces_written(self):
+        # Gather some dummy data that matches the test_data.dat file
+        self.device.Correlation = test_data.corr
+        self.device.Lags = test_data.lags
+        self.device.TraceChA = test_data.trace_a
+        self.device.TraceChB = test_data.trace_b
+
+        metadata = {
+            Records.SCATTERING_ANGLE.name: 110,
+            Records.MEASUREMENTDURATION.name: 10,
+            Records.LASER_WAVELENGTH.name: 642,
+            Records.SOLVENT_REFRACTIVE_INDEX.name: 1.33,
+            Records.SOLVENT_VISCOSITY.name: 1,
+            Records.SAMPLE_TEMP.name: 298
+        }
+
+        # Save data to two temporary files that are discarded
+        with NamedTemporaryFile(mode="w+") as user_file, NamedTemporaryFile(mode="w+") as archive_file:
+
+            self.driver.save_data(user_file, archive_file, metadata)
+
+            # Read test_data.dat
+            with open(test_data.test_data_file, mode="r") as test_data_file:
+
+                test_actual_data = test_data_file.read()
+
+                # Go back to start of files after write and ignore firstline that has timestamp on it
+                user_file.seek(0)
+                user_file.readline()
+                archive_file.seek(0)
+                archive_file.readline()
+
+                # Assert content is equal
+                self.assertEqual(test_actual_data, user_file.read())
+                self.assertEqual(test_actual_data, archive_file.read())
 
 
 if __name__ == '__main__':
