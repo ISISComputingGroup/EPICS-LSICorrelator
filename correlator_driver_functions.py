@@ -1,11 +1,10 @@
 from __future__ import print_function, unicode_literals, division, absolute_import
 
-import argparse
 import sys
 import os
 import traceback
 from io import StringIO
-from typing import Dict, TextIO
+from typing import Dict, TextIO, Tuple
 
 import six
 
@@ -17,19 +16,12 @@ from datetime import datetime
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
-# from LSI import LSI_Param
 from LSICorrelator import LSICorrelator
 from mocked_correlator_api import MockedCorrelatorAPI
 
 from pvdb import Records
-# from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
-# from server_common.channel_access import ChannelAccess
-# from server_common.helpers import register_ioc_start, get_macro_values
 from file_format import FILE_SCHEME
-
-DATA_DIR = r"c:\Data"
-USER_FILE_DIR = r"c:\Data"
 
 
 def _error_handler(func):
@@ -45,22 +37,8 @@ def _error_handler(func):
 # Magic number, seems to be time between measurements.
 DELTA_T = 0.0524288
 
-# PVs from the DAE to get information about instrument
-# RUNNUMBER_PV = "{pv_prefix}DAE:RUNNUMBER"
-# TITLE_PV = "{pv_prefix}DAE:TITLE"
-# INSTNAME_PV = "{pv_prefix}DAE:INSTNAME"
 
-
-def remove_non_ascii(text_to_check):
-    """
-    Removes non-ascii and other characters from the supplied text
-    """
-    # Remove anything other than alphanumerics and dashes/underscores
-    parsed_text = [char for char in text_to_check if char.isalnum() or char in '-_']
-    return ''.join(parsed_text)
-
-
-class LSiCorrelatorDriver():
+class LSiCorrelatorDriver:
     """
     A driver for the LSi Correlator
     """
@@ -70,9 +48,6 @@ class LSiCorrelatorDriver():
         A driver for the LSi Correlator
 
         Args:
-            host: The IP address of the LSi Correlator
-            firmware_revision: The firmware revision of the LSi Correlator
-            filepath: The directory in which to place data files
             macros: Dictionary of macros for this IOC
         """
         self.macros = macros
@@ -93,8 +68,9 @@ class LSiCorrelatorDriver():
         self.is_connected = self.device.isConnected()
         self.corr = None
         self.lags = None
+        self.has_data = False
 
-    def get_data_as_arrays(self):
+    def get_data_as_arrays(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
         The correlation function and time lags are filtered to finite values only.
@@ -129,10 +105,8 @@ class LSiCorrelatorDriver():
     @_error_handler
     def take_data(self):
         """
-        Sends settings parameters to the LSi driver and takes data from the LSi Correlator with the given number of
-        repetitions.
+        Starts taking data from the LSi Correlator once with the currently configure device settings.
         """
-
         self.device.start()
 
         while self.device.MeasurementOn():
@@ -150,11 +124,11 @@ class LSiCorrelatorDriver():
 
     def save_data(self, user_file: TextIO, archive_file: TextIO, metadata: Dict):
         """
-        Write the correlation function and time lags to file.
+        Write the correlation function, time lags, traces and metadata to user and archive files.
 
         Args:
-            user_file (file): The user file to write metadata, correlation, time_lags and the traces to
-            archive_file (file): The archive file to write metadata, correlation, time_lags and the traces to
+            user_file (TextIO): The user file to write metadata, correlation, time_lags and the traces to
+            archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
             metadata (dict): A dictionary of metadata to write to the file
         """
         correlation, time_lags, trace_a, trace_b, trace_time = self.get_data_as_arrays()

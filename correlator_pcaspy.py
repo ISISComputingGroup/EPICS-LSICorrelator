@@ -4,12 +4,11 @@ import argparse
 import sys
 import os
 import traceback
-from typing import Dict
+from typing import Dict, Any
 
 import six
 
 from pcaspy import SimpleServer, Driver
-from pcaspy.tools import ServerThread
 from pcaspy.alarm import Alarm, Severity
 from concurrent.futures import ThreadPoolExecutor
 
@@ -19,32 +18,17 @@ sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from LSI import LSI_Param
-#from LSICorrelator import LSICorrelator
-from correlator_driver_functions import LSiCorrelatorDriver
+from correlator_driver_functions import LSiCorrelatorDriver, _error_handler
 
-from mocked_correlator_api import MockedCorrelatorAPI
 
 from pvdb import STATIC_PV_DATABASE, Records
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.channel_access import ChannelAccess
 from server_common.helpers import register_ioc_start, get_macro_values
-from file_format import FILE_SCHEME
 
-from mock import MagicMock
 
 DATA_DIR = r"c:\Data"
-USER_FILE_DIR = r"c:\Data"
-
-
-def _error_handler(func):
-    @six.wraps(func)
-    def _wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception:
-            print_and_log(traceback.format_exc(), src="lsi ")
-    return _wrapper
 
 
 def get_base_pv(reason: str):
@@ -54,16 +38,13 @@ def get_base_pv(reason: str):
 
 THREADPOOL = ThreadPoolExecutor()
 
-# Magic number, seems to be time between measurements.
-DELTA_T = 0.0524288
-
 # PVs from the DAE to get information about instrument
 RUNNUMBER_PV = "{pv_prefix}DAE:RUNNUMBER"
 TITLE_PV = "{pv_prefix}DAE:TITLE"
 INSTNAME_PV = "{pv_prefix}DAE:INSTNAME"
 
 
-def remove_non_ascii(text_to_check):
+def remove_non_ascii(text_to_check: str) -> str:
     """
     Removes non-ascii and other characters from the supplied text
     """
@@ -82,9 +63,7 @@ class LSiPcaspy(Driver):
         A driver for the LSi Correlator
 
         Args:
-            host: The IP address of the LSi Correlator
-            firmware_revision: The firmware revision of the LSi Correlator
-            filepath: The directory in which to place data files
+            pv_prefix: The pv prefix for the current host
             macros: Dictionary of macros for this IOC
         """
         super().__init__()
@@ -127,7 +106,10 @@ class LSiPcaspy(Driver):
         self.alarm_severity = Severity.NO_ALARM
 
         if not os.path.isdir(self.user_filepath):
-            self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(self.user_filepath), "MAJOR")
+            self.update_error_pv_print_and_log(
+                "LSiCorrelatorDriver: {} is invalid file path".format(self.user_filepath),
+                "MAJOR"
+            )
 
         for record, default_value in defaults.items():
             # Write defaults to device
@@ -142,16 +124,19 @@ class LSiPcaspy(Driver):
 
         Args:
             error: The error message
-            severity (optional): Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
+            severity (optional): Gives the severity of the message. Expected severities are MAJOR, MINOR and INFO.
             src (optional): Gives the source of the message. Default source is LSI (from this IOC).
         """
-
         self.update_pv_and_write_to_device(Records.ERRORMSG.name, error)
         print_and_log(error, severity, src)
 
     def set_disconnected_alarms(self, in_alarm: bool):
-        """ Sets disconnected alarms if in_alarm is True """
-        ### Maybe have a method in the new class like is_device_disconnected() which this method can poll?
+        """
+        Sets disconnected alarms if in_alarm is True
+
+        Args:
+            in_alarm: True if we want to set all alarms on the IOC, False if not.
+        """
         if in_alarm:
             severity = Severity.INVALID_ALARM
             status = Alarm.TIMEOUT_ALARM
@@ -165,7 +150,7 @@ class LSiPcaspy(Driver):
         for record in Records:
             self.setParamStatus(record.name, status, severity)
 
-    def get_converted_pv_value(self, reason):
+    def get_converted_pv_value(self, reason: str) -> Any:
         """
         If the supplied reason has a defining record, applies the convert_from_pv transformation to current pv value
         else returns current pv value.
@@ -184,9 +169,13 @@ class LSiPcaspy(Driver):
 
         return sanitised_value
 
-    def update_param_and_fields(self, reason, value):
+    def update_param_and_fields(self, reason: str, value: Any):
         """
         Updates given param, VAL field, and alarm status/severity in PCASpy driver
+
+        Args:
+            reason: The pv to update
+            value: The value to update the pv, pv.VAL and alarm status with
         """
         try:
             self.setParam(reason, value)
@@ -197,7 +186,7 @@ class LSiPcaspy(Driver):
             self.update_error_pv_print_and_log("{}".format(err))
 
     @_error_handler
-    def update_pv_and_write_to_device(self, reason, value, update_setpoint: bool = False):
+    def update_pv_and_write_to_device(self, reason: str, value: Any, update_setpoint: bool = False):
         """
         Helper function to update the value of a PV held in this driver and sets the value on the device.
 
@@ -232,7 +221,7 @@ class LSiPcaspy(Driver):
         # Update PVs after any write
         self.updatePVs()
 
-    def set_array_pv_value(self, reason, value):
+    def set_array_pv_value(self, reason: str, value: Any):
         """
         Helper function to update the value of an array PV and the array PV fields (NORD)
         Args:
@@ -243,7 +232,7 @@ class LSiPcaspy(Driver):
         self.setParam("{reason}.NORD".format(reason=reason), len(value))
 
     @_error_handler
-    def write(self, reason: str, value):
+    def write(self, reason: str, value: Any):
         """
         Handle write to PV
         Args:
@@ -261,7 +250,7 @@ class LSiPcaspy(Driver):
             THREADPOOL.submit(self.update_pv_and_write_to_device, reason, value)
 
     @_error_handler
-    def read(self, reason):
+    def read(self, reason: str):
         """
         Handle read of PV
         Args:
@@ -280,8 +269,9 @@ class LSiPcaspy(Driver):
     @_error_handler
     def take_data(self):
         """
-        Sends settings parameters to the LSi driver and takes data from the LSi Correlator with the given number of
-        repetitions.
+        Sends settings parameters to the LSi driver and takes data (and saves the data) from the LSi Correlator
+        with the given number of repetitions. Sends IOC into alarm if no data is returned
+        (as the correlator may be disconnected).
         """
         try:
             self.driver.configure()
@@ -301,7 +291,8 @@ class LSiPcaspy(Driver):
             if self.driver.has_data:
                 self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, self.driver.corr)
                 self.set_array_pv_value(Records.LAGS.name, self.driver.lags)
-                with open(self.get_user_filename(), "w+") as user_file, open(self.get_archive_filename(), "w+") as archive_file:
+                with open(self.get_user_filename(), "w+") as user_file, \
+                        open(self.get_archive_filename(), "w+") as archive_file:
                     self.driver.save_data(user_file, archive_file, self.get_metadata())
             else:
                 # No data returned, correlator may be disconnected
@@ -336,7 +327,6 @@ class LSiPcaspy(Driver):
         """
         Returns a filename which the archive data file will be saved with
         """
-        filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
         timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
         run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
         instrument = ChannelAccess.caget(INSTNAME_PV.format(pv_prefix=self.pv_prefix))
@@ -363,11 +353,9 @@ class LSiPcaspy(Driver):
             run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
             )
 
-        self.filename = filename
         # Update last used filename PV
-        self.update_pv_and_write_to_device(Records.OUTPUTFILE.name, os.path.join(self.user_filepath, filename))
-
         full_filepath = os.path.join(self.user_filepath, filename)
+        self.update_pv_and_write_to_device(Records.OUTPUTFILE.name, full_filepath)
 
         return full_filepath
 
@@ -392,7 +380,6 @@ def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]):
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
     # of how it achieves this.
 
-    # driver = LSiCorrelatorDriver(ip_address, pv_prefix, firmware_revision, USER_FILE_DIR, macros)
     LSiPcaspy(pv_prefix, macros)
 
     register_ioc_start(ioc_name, STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
