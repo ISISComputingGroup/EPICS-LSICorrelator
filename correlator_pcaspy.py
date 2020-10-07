@@ -127,7 +127,7 @@ class LSiPcaspy(Driver):
         self.alarm_severity = Severity.NO_ALARM
 
         if not os.path.isdir(self.user_filepath):
-            self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(user_filepath), "MAJOR")
+            self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(self.user_filepath), "MAJOR")
 
         for record, default_value in defaults.items():
             # Write defaults to device

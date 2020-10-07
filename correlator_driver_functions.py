@@ -82,7 +82,7 @@ class LSiCorrelatorDriver():
         except KeyError:
             raise RuntimeError("No IP address specified, cannot start")
         try:
-            firmware_revision = macros["FIRMWARE_REVISION"]
+            firmware_revision = macros.get("FIRMWARE_REVISION", "4.0.0.3")
         except KeyError:
             raise RuntimeError("No firmware revision specified, cannot start")
 
