@@ -81,10 +81,7 @@ class LSiCorrelatorDriver():
             host = macros["ADDR"]
         except KeyError:
             raise RuntimeError("No IP address specified, cannot start")
-        try:
-            firmware_revision = macros.get("FIRMWARE_REVISION", "4.0.0.3")
-        except KeyError:
-            raise RuntimeError("No firmware revision specified, cannot start")
+        firmware_revision = macros.get("FIRMWARE_REVISION", "4.0.0.3")
 
         if macros["SIMULATE"] == "1":
             print("WARNING! Started in simulation mode")
