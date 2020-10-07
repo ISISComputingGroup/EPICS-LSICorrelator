@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from tempfile import NamedTemporaryFile
 
-from correlator_driver_functions import LSiCorrelatorDriver
+from correlator_driver_functions import LSiCorrelatorVendorInterface
 from pvdb import Records
 
 from test_utils import test_data
@@ -22,7 +22,7 @@ class LSICorrelatorTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self.driver = LSiCorrelatorDriver(macros)
+        self.driver = LSiCorrelatorVendorInterface(macros)
 
         self.mocked_api = self.driver.mocked_api
         self.device = self.driver.device

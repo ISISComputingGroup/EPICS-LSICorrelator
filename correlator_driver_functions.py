@@ -38,14 +38,14 @@ def _error_handler(func):
 DELTA_T = 0.0524288
 
 
-class LSiCorrelatorDriver:
+class LSiCorrelatorVendorInterface:
     """
-    A driver for the LSi Correlator
+    An interface to the LSiCorrelator vendor api.
     """
 
     def __init__(self, macros: Dict[str, str]):
         """
-        A driver for the LSi Correlator
+        An interface to the LSiCorrelator vendor api.
 
         Args:
             macros: Dictionary of macros for this IOC

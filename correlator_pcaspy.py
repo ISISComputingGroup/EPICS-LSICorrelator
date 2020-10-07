@@ -18,7 +18,7 @@ sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from LSI import LSI_Param
-from correlator_driver_functions import LSiCorrelatorDriver, _error_handler
+from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
 
 
 from pvdb import STATIC_PV_DATABASE, Records
@@ -53,14 +53,14 @@ def remove_non_ascii(text_to_check: str) -> str:
     return ''.join(parsed_text)
 
 
-class LSiPcaspy(Driver):
+class LSiCorrelatorIOC(Driver):
     """
-    A driver for the LSi Correlator
+    A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
     """
 
     def __init__(self, pv_prefix: str, macros: Dict[str, str]):
         """
-        A driver for the LSi Correlator
+        A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
 
         Args:
             pv_prefix: The pv prefix for the current host
@@ -73,7 +73,7 @@ class LSiPcaspy(Driver):
         except KeyError:
             raise RuntimeError("No file path specified to save data to")
 
-        self.driver = LSiCorrelatorDriver(macros)
+        self.driver = LSiCorrelatorVendorInterface(macros)
 
         self.macros = macros
 
@@ -380,7 +380,7 @@ def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]):
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
     # of how it achieves this.
 
-    LSiPcaspy(pv_prefix, macros)
+    LSiCorrelatorIOC(pv_prefix, macros)
 
     register_ioc_start(ioc_name, STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
 
