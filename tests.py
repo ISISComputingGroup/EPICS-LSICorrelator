@@ -12,8 +12,6 @@ macros = {
     "ADDR": "127.0.0.1",
     "FIRMWARE_REVISION": "4.0.0.3"
     }
-pv_prefix = "TE:NDW1836"
-ioc_name = "LSICORR_01"
 
 
 class LSICorrelatorTests(unittest.TestCase):
