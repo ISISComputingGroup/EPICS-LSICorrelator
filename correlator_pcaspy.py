@@ -401,7 +401,7 @@ def main():
         description="Runs a remote IOC server.",
     )
 
-    parser.add_argument("--ioc_number", default=1, type=int)
+    parser.add_argument("--ioc_name", required=True, type=six.text_type)
 
     parser.add_argument("--pv_prefix", required=True, type=six.text_type,
                         help="The PV prefix of this instrument.")
@@ -412,12 +412,10 @@ def main():
 
     print("IOC started")
 
-    ioc_name = "LSICORR_{:02d}".format(args.ioc_number)
-
     macros = get_macro_values()
 
     serve_forever(
-        ioc_name,
+        args.ioc_name,
         args.pv_prefix,
         macros
     )
