@@ -73,12 +73,7 @@ class MockedCorrelatorAPI:
         self.update_count += 1
 
         # Update correlation, lags and trace data
-        if self.device.disconnected:
-            corr = None
-        else:
-            corr = self.corr
-
-        self.device.Correlation = corr
+        self.device.Correlation = None if self.device.disconnected else self.corr
         self.device.Lags = self.lags
         self.device.TraceChA = self.trace_a
         self.device.TraceChB = self.trace_b

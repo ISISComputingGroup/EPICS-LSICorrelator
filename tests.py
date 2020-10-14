@@ -103,14 +103,12 @@ class LSICorrelatorTests(unittest.TestCase):
                 test_actual_data = test_data_file.read()
 
                 # Go back to start of files after write and ignore firstline that has timestamp on it
-                user_file.seek(0)
-                user_file.readline()
-                archive_file.seek(0)
-                archive_file.readline()
+                for file in [user_file, archive_file]:
+                    file.seek(0)
+                    file.readline()
 
-                # Assert content is equal
-                self.assertEqual(test_actual_data, user_file.read())
-                self.assertEqual(test_actual_data, archive_file.read())
+                    # Assert content is equal
+                    self.assertEqual(test_actual_data, file.read())
 
 
 if __name__ == '__main__':
