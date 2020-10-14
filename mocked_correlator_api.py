@@ -44,8 +44,8 @@ class MockedCorrelatorAPI:
 
     def start(self):
         """
-        Switches the measurement on. This will be switched off after the collection time has passed by a
-         call either to update or is_measurement_on.
+        If not already measuring, turn measurement on.
+        Records the time measurement was started to determine elasped measurement time.
         """
         if not self.device.measurement_on:
             print("Starting!")
@@ -63,9 +63,8 @@ class MockedCorrelatorAPI:
 
     def update(self):
         """
-        Update correlation, lags and trace data. 
+        Update correlation, lags and trace data.
         Record the amount of calls that are made and if they are made when the measurement is off.
-        Switch off the measurement when the collection time has passed.
         """
         # Record call information
         if not self.device.measurement_on:
