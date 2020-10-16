@@ -20,7 +20,7 @@ class LSICorrelatorTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self.driver = LSiCorrelatorVendorInterface(macros)
+        self.driver = LSiCorrelatorVendorInterface(macros, simulated=True)
 
         self.mocked_api = self.driver.mocked_api
         self.device = self.driver.device
