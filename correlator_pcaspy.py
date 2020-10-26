@@ -4,44 +4,31 @@ import argparse
 import sys
 import os
 import traceback
-from io import StringIO
+from typing import Dict, Any
 
 import six
 
 from pcaspy import SimpleServer, Driver
 from pcaspy.alarm import Alarm, Severity
 from concurrent.futures import ThreadPoolExecutor
-import numpy as np
 
-from time import sleep
 from datetime import datetime
-
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from LSI import LSI_Param
-from LSICorrelator import LSICorrelator
+from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
+
 
 from pvdb import STATIC_PV_DATABASE, Records
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from server_common.channel_access import ChannelAccess
-from server_common.helpers import register_ioc_start
-from file_format import FILE_SCHEME
+from server_common.helpers import register_ioc_start, get_macro_values
+
 
 DATA_DIR = r"c:\Data"
-USER_FILE_DIR = r"c:\Data"
-
-
-def _error_handler(func):
-    @six.wraps(func)
-    def _wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception:
-            print_and_log(traceback.format_exc(), src="lsi ")
-    return _wrapper
 
 
 def get_base_pv(reason: str):
@@ -51,16 +38,13 @@ def get_base_pv(reason: str):
 
 THREADPOOL = ThreadPoolExecutor()
 
-# Magic number, seems to be time between measurements.
-DELTA_T = 0.0524288
-
 # PVs from the DAE to get information about instrument
 RUNNUMBER_PV = "{pv_prefix}DAE:RUNNUMBER"
 TITLE_PV = "{pv_prefix}DAE:TITLE"
 INSTNAME_PV = "{pv_prefix}DAE:INSTNAME"
 
 
-def remove_non_ascii(text_to_check):
+def remove_non_ascii(text_to_check: str) -> str:
     """
     Removes non-ascii and other characters from the supplied text
     """
@@ -69,23 +53,34 @@ def remove_non_ascii(text_to_check):
     return ''.join(parsed_text)
 
 
-class LSiCorrelatorDriver(Driver):
+class LSiCorrelatorIOC(Driver):
     """
-    A driver for the LSi Correlator
+    A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
     """
 
-    def __init__(self, host: str, pv_prefix: str, firmware_revision: str, filepath: str):
+    def __init__(self, pv_prefix: str, macros: Dict[str, str]):
         """
-        A driver for the LSi Correlator
+        A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
 
         Args:
-            host: The IP address of the LSi Correlator
-            firmware_revision: The firmware revision of the LSi Correlator
-            filepath: The directory in which to place data files
+            pv_prefix: The pv prefix for the current host
+            macros: Dictionary of macros for this IOC
         """
-        super(LSiCorrelatorDriver, self).__init__()
+        super().__init__()
 
-        self.device = LSICorrelator(host, firmware_revision)
+        try:
+            self.user_filepath = macros["FILEPATH"]
+        except KeyError:
+            raise RuntimeError("No file path specified to save data to")
+
+        self.simulated = macros["SIMULATE"] == "1"
+        if self.simulated:
+            print("WARNING! Started in simulation mode")
+
+        self.driver = LSiCorrelatorVendorInterface(macros, simulated=self.simulated)
+
+        self.macros = macros
+
         self.pv_prefix = pv_prefix
 
         defaults = {
@@ -99,25 +94,26 @@ class LSiCorrelatorDriver(Driver):
             Records.OVERLOADINTERVAL.value: 400,
             Records.REPETITIONS.value: 2,
             Records.CURRENT_REPETITION.value: 0,
-            Records.CONNECTED.value: self.device.isConnected(),
+            Records.CONNECTED.value: self.driver.is_connected,
             Records.RUNNING.value: False,
-            Records.SCATTERING_ANGLE.value: 2.2,
-            Records.SAMPLE_TEMP.value: 300,
-            Records.SOLVENT_VISCOSITY.value: 1100,
-            Records.SOLVENT_REFRACTIVE_INDEX.value: 1.1,
-            Records.LASER_WAVELENGTH.value: 440,
+            Records.SCATTERING_ANGLE.value: 110,
+            Records.SAMPLE_TEMP.value: 298,
+            Records.SOLVENT_VISCOSITY.value: 1,
+            Records.SOLVENT_REFRACTIVE_INDEX.value: 1.33,
+            Records.LASER_WAVELENGTH.value: 642,
             Records.OUTPUTFILE.value: "No data taken yet",
             Records.SIM.value: 0,
             Records.DISABLE.value: 0
         }
 
-        self.user_filepath = filepath
-
         self.alarm_status = Alarm.NO_ALARM
         self.alarm_severity = Severity.NO_ALARM
 
-        if not os.path.isdir(filepath):
-            self.update_error_pv_print_and_log("LSiCorrelatorDriver: {} is invalid file path".format(filepath), "MAJOR")
+        if not os.path.isdir(self.user_filepath):
+            self.update_error_pv_print_and_log(
+                "LSiCorrelatorDriver: {} is invalid file path".format(self.user_filepath),
+                "MAJOR"
+            )
 
         for record, default_value in defaults.items():
             # Write defaults to device
@@ -132,15 +128,19 @@ class LSiCorrelatorDriver(Driver):
 
         Args:
             error: The error message
-            severity (optional): Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
+            severity (optional): Gives the severity of the message. Expected severities are MAJOR, MINOR and INFO.
             src (optional): Gives the source of the message. Default source is LSI (from this IOC).
         """
-
         self.update_pv_and_write_to_device(Records.ERRORMSG.name, error)
         print_and_log(error, severity, src)
 
     def set_disconnected_alarms(self, in_alarm: bool):
-        """ Sets disconnected alarms if in_alarm is True """
+        """
+        Sets disconnected alarms if in_alarm is True
+
+        Args:
+            in_alarm: True if we want to set all alarms on the IOC, False if not.
+        """
         if in_alarm:
             severity = Severity.INVALID_ALARM
             status = Alarm.TIMEOUT_ALARM
@@ -154,7 +154,7 @@ class LSiCorrelatorDriver(Driver):
         for record in Records:
             self.setParamStatus(record.name, status, severity)
 
-    def get_converted_pv_value(self, reason):
+    def get_converted_pv_value(self, reason: str) -> Any:
         """
         If the supplied reason has a defining record, applies the convert_from_pv transformation to current pv value
         else returns current pv value.
@@ -173,9 +173,13 @@ class LSiCorrelatorDriver(Driver):
 
         return sanitised_value
 
-    def update_param_and_fields(self, reason, value):
+    def update_param_and_fields(self, reason: str, value: Any):
         """
         Updates given param, VAL field, and alarm status/severity in PCASpy driver
+
+        Args:
+            reason: The pv to update
+            value: The value to update the pv, pv.VAL and alarm status with
         """
         try:
             self.setParam(reason, value)
@@ -186,7 +190,7 @@ class LSiCorrelatorDriver(Driver):
             self.update_error_pv_print_and_log("{}".format(err))
 
     @_error_handler
-    def update_pv_and_write_to_device(self, reason, value, update_setpoint: bool = False):
+    def update_pv_and_write_to_device(self, reason: str, value: Any, update_setpoint: bool = False):
         """
         Helper function to update the value of a PV held in this driver and sets the value on the device.
 
@@ -207,7 +211,7 @@ class LSiCorrelatorDriver(Driver):
             value_for_lsi_driver = record.value.convert_from_pv(value)
             new_pv_value = record.value.convert_to_pv(value_for_lsi_driver)
             try:
-                record.value.set_on_device(self.device, value_for_lsi_driver)
+                record.value.set_on_device(self.driver.device, value_for_lsi_driver)
             except ValueError as e:
                 self.update_error_pv_print_and_log("Can't update PV {}, invalid value".format(reason))
                 self.update_error_pv_print_and_log(str(e))
@@ -221,7 +225,7 @@ class LSiCorrelatorDriver(Driver):
         # Update PVs after any write
         self.updatePVs()
 
-    def set_array_pv_value(self, reason, value):
+    def set_array_pv_value(self, reason: str, value: Any):
         """
         Helper function to update the value of an array PV and the array PV fields (NORD)
         Args:
@@ -232,7 +236,7 @@ class LSiCorrelatorDriver(Driver):
         self.setParam("{reason}.NORD".format(reason=reason), len(value))
 
     @_error_handler
-    def write(self, reason: str, value):
+    def write(self, reason: str, value: Any):
         """
         Handle write to PV
         Args:
@@ -250,7 +254,7 @@ class LSiCorrelatorDriver(Driver):
             THREADPOOL.submit(self.update_pv_and_write_to_device, reason, value)
 
     @_error_handler
-    def read(self, reason):
+    def read(self, reason: str):
         """
         Handle read of PV
         Args:
@@ -266,156 +270,127 @@ class LSiCorrelatorDriver(Driver):
 
         return pv_value
 
-    def get_data_as_arrays(self):
-        """
-        Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
-        The correlation function and time lags are filtered to finite values only.
-
-        Returns:
-            Corr (ndarray): The finite values of the correlation function
-            Lags (ndarray): Time lags where the correlation function is finite
-            trace_A (ndarray): Raw photon counts for channel A
-            trace_B (ndarray): Raw photon counts for channel B
-            trace_time (ndarray): Time trace constructed from length of raw data
-        """
-        corr = np.asarray(self.device.Correlation)
-        lags = np.asarray(self.device.Lags)
-
-        lags = lags[np.isfinite(corr)]
-        corr = corr[np.isfinite(corr)]
-
-        trace_a = np.asarray(self.device.TraceChA)
-        trace_b = np.asarray(self.device.TraceChB)
-
-        # Time axis is number of data points collected * scaling factor
-        trace_time = np.arange(len(trace_a))*DELTA_T
-
-        return corr, lags, trace_a, trace_b, trace_time
-
     @_error_handler
     def take_data(self):
         """
-        Sends settings parameters to the LSi driver and takes data from the LSi Correlator with the given number of
-        repetitions.
+        Sends settings parameters to the LSi driver and takes data (and saves the data) from the LSi Correlator
+        with the given number of repetitions. Sends IOC into alarm if no data is returned
+        (as the correlator may be disconnected).
         """
-        self.device.configure()
+        try:
+            self.driver.configure()
+        except RuntimeError as e:
+            self.update_error_pv_print_and_log(str(e))
 
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         for repeat in range(1, no_repetitions+1):
             self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
 
-            self.device.start()
+            self.update_pv_and_write_to_device(Records.RUNNING.name, True)
 
-            while self.device.MeasurementOn():
-                sleep(0.5)
-                self.device.update()
-                self.update_pv_and_write_to_device(Records.RUNNING.name, True)
+            self.driver.take_data()
 
             self.update_pv_and_write_to_device(Records.RUNNING.name, False)
 
-            if self.device.Correlation is None:
+            if self.driver.has_data:
+                self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, self.driver.corr)
+                self.set_array_pv_value(Records.LAGS.name, self.driver.lags)
+
+                with open(self.get_user_filename(), "w+") as user_file, \
+                        open(self.get_archive_filename(), "w+") as archive_file:
+                    self.driver.save_data(user_file, archive_file, self.get_metadata())
+            else:
                 # No data returned, correlator may be disconnected
                 self.update_pv_and_write_to_device(Records.CONNECTED.name, False)
                 self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected",
                                                    "INVALID")
                 self.set_disconnected_alarms(True)
-            else:
-                corr, lags, trace_a, trace_b, time_trace = self.get_data_as_arrays()
 
-                self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, corr)
-                self.set_array_pv_value(Records.LAGS.name, lags)
-
-                self.save_data(corr, lags, trace_a, trace_b, time_trace)
-
-        # Attempt to set start PV back to NO, purely for aesthetics (this PV is actually always ready)
+        # Set start PV back to NO, purely for aesthetics (this PV is actually always ready)
         self.update_param_and_fields(Records.START.name, 0)
         self.update_param_and_fields("{pv}:SP".format(pv=Records.START.name), 0)
 
+    def get_metadata(self) -> Dict:
+        """
+        Returns a dictionary containing meta data to be saved
+        """
+        metadata = {}
+        metadata_records = [
+            Records.SCATTERING_ANGLE,
+            Records.MEASUREMENTDURATION,
+            Records.LASER_WAVELENGTH,
+            Records.SOLVENT_REFRACTIVE_INDEX,
+            Records.SOLVENT_VISCOSITY,
+            Records.SAMPLE_TEMP
+        ]
+        for record in metadata_records:
+            metadata[record.name] = self.get_converted_pv_value(record.name)
+        
+        return metadata
+
     def get_archive_filename(self):
         """
-        Returns a filename which the archive data file will be saved with
+        Returns a filename which the archive data file will be saved with.
+
+        If device is simulated do not attempt to get instrument name or run number from channel access.
+        If simulated save file in user directory instead of usual data directory.
         """
-        filename = "{instrument}{run_number}_DLS_{timestamp}.txt"
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-        run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
-        instrument = ChannelAccess.caget(INSTNAME_PV.format(pv_prefix=self.pv_prefix))
-        return filename.format(instrument=instrument, run_number=run_number, timestamp=timestamp)
+        if self.simulated:
+            full_filename = os.path.join(self.user_filepath, "LSICORR_IOC_test_archive_save.dat")
+        else:
+            timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+            run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
+            instrument = ChannelAccess.caget(INSTNAME_PV.format(pv_prefix=self.pv_prefix))
+
+            filename = "{instrument}{run_number}_DLS_{timestamp}.txt".format(instrument=instrument,
+                                                                             run_number=run_number,
+                                                                             timestamp=timestamp)
+
+            full_filename = os.path.join(DATA_DIR, filename)
+
+        return full_filename
 
     def get_user_filename(self):
-        """ Returns a filename given the current run number and title """
-        run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+        """
+        Returns a filename given the current run number and title.
 
-        experiment_name = self.get_converted_pv_value(Records.EXPERIMENTNAME.name)
+        If device is simulated do not attempt to get run number or title from channel access
+        """
 
-        if experiment_name == "":
-            # No name supplied, use run title
-            experiment_name = ChannelAccess.caget(TITLE_PV.format(pv_prefix=self.pv_prefix))
+        if self.simulated:
+            filename = "LSICORR_IOC_test_user_save.dat"
+        else:
+            run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
+            print_and_log("run number = {}".format(run_number))
+            timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
 
-        filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
-            run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
-            )
+            experiment_name = self.get_converted_pv_value(Records.EXPERIMENTNAME.name)
+
+            if experiment_name == "":
+                # No name supplied, use run title
+                experiment_name = ChannelAccess.caget(TITLE_PV.format(pv_prefix=self.pv_prefix))
+
+            filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
+                run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
+                )
 
         # Update last used filename PV
-        self.update_pv_and_write_to_device(Records.OUTPUTFILE.name, os.path.join(self.user_filepath, filename))
+        full_filename = os.path.join(self.user_filepath, filename)
+        self.update_pv_and_write_to_device(Records.OUTPUTFILE.name, full_filename)
 
-        return filename
-
-    def save_data(self, correlation, time_lags, trace_a, trace_b, trace_time):
-        """
-        Write the correlation function and time lags to file.
-
-        Args:
-            correlation (float array): The correlation function
-            time_lags (float array): The time lags
-            trace_a (float array): The 'raw' trace A counts from the correlator
-            trace_b (float array): The 'raw' trace B from the correlator
-            trace_time (float array): The elapsed time at which each raw data point was collected
-        """
-        user_filename = os.path.join(self.user_filepath, self.get_user_filename())
-        archive_filename = os.path.join(DATA_DIR, self.get_archive_filename())
-
-        correlation_data = np.vstack((time_lags, correlation)).T
-        raw_channel_data = np.vstack((trace_time, trace_a, trace_b)).T
-
-        # Populate the save file as a string
-        correlation_file = StringIO()
-        np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.6e')
-        correlation_string = correlation_file.getvalue()
-        raw_channel_data_file = StringIO()
-        np.savetxt(raw_channel_data_file, raw_channel_data, delimiter='\t', fmt='%.6f')
-        raw_channel_data_string = raw_channel_data_file.getvalue()
-
-        save_file = FILE_SCHEME.format(
-            datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
-            scattering_angle=self.get_converted_pv_value(Records.SCATTERING_ANGLE.name),
-            duration=self.get_converted_pv_value(Records.MEASUREMENTDURATION.name),
-            wavelength=self.get_converted_pv_value(Records.LASER_WAVELENGTH.name),
-            refractive_index=self.get_converted_pv_value(Records.SOLVENT_REFRACTIVE_INDEX.name),
-            viscosity=self.get_converted_pv_value(Records.SOLVENT_VISCOSITY.name),
-            temperature=self.get_converted_pv_value(Records.SAMPLE_TEMP.name),
-            avg_count_A=np.mean(trace_a),
-            avg_count_B=np.mean(trace_b),
-            correlation_function=correlation_string,
-            count_rate_history=raw_channel_data_string
-        )
-
-        for filename in [user_filename, archive_filename]:
-            with open(filename, 'w+') as dat_file:
-                dat_file.write(save_file)
+        return full_filename
 
 
-def serve_forever(ioc_number: int, pv_prefix: str):
+def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]):
     """
     Server the PVs for the remote ioc server
     Args:
-        ioc_number: The number of the IOC to be run (e.g. 1 for LSICORR_01)
+        ioc_name: The name of the IOC to be run, including ioc number (e.g. LSICORR_01)
         pv_prefix: prefix for the pvs
-
+        macros: Dictionary containing IOC macros
     Returns:
 
     """
-    ioc_name = "LSICORR_{:02d}".format(ioc_number)
     ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(pv_prefix=pv_prefix, ioc_name=ioc_name)
     print_and_log(ioc_name_with_pv_prefix)
     server = SimpleServer()
@@ -425,9 +400,8 @@ def serve_forever(ioc_number: int, pv_prefix: str):
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
     # of how it achieves this.
-    ip_address = '127.0.0.1'
-    firmware_revision = '4.0.0.3'
-    LSiCorrelatorDriver(ip_address, pv_prefix, firmware_revision, USER_FILE_DIR)
+
+    LSiCorrelatorIOC(pv_prefix, macros)
 
     register_ioc_start(ioc_name, STATIC_PV_DATABASE, ioc_name_with_pv_prefix)
 
@@ -448,7 +422,7 @@ def main():
         description="Runs a remote IOC server.",
     )
 
-    parser.add_argument("--ioc_number", default=1, type=int)
+    parser.add_argument("--ioc_name", required=True, type=six.text_type)
 
     parser.add_argument("--pv_prefix", required=True, type=six.text_type,
                         help="The PV prefix of this instrument.")
@@ -459,9 +433,12 @@ def main():
 
     print("IOC started")
 
+    macros = get_macro_values()
+
     serve_forever(
-        args.ioc_number,
+        args.ioc_name,
         args.pv_prefix,
+        macros
     )
 
 
