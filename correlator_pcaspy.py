@@ -398,7 +398,6 @@ def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]):
     server.createPV(ioc_name_with_pv_prefix, STATIC_PV_DATABASE)
 
     # Run heartbeat IOC, this is done with a different prefix
-    print("starting heartbeat ioc")
     server.createPV(prefix="{pv_prefix}IOC:{ioc_name}:DEVIOS".format(pv_prefix=pv_prefix, ioc_name=ioc_name),
                     pvdb={"HEARTBEAT": {"type": "int", "value": 0}})
 
