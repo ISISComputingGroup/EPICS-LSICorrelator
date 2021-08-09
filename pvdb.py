@@ -186,7 +186,7 @@ class Records(Enum):
                      {'type': 'enum', 'enums': ["NO", "YES"]},
                      convert_from_pv=bool
                      )
-
+    WAIT = Record("WAIT",float_pv_with_unit('s'), has_setpoint = True)
 
 STATIC_PV_DATABASE = {}
 for record in Records:
