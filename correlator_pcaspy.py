@@ -5,6 +5,7 @@ import sys
 import os
 import traceback
 from typing import Dict, Any
+import time
 
 import six
 
@@ -283,6 +284,8 @@ class LSiCorrelatorIOC(Driver):
             self.update_error_pv_print_and_log(str(e))
 
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
+        wait_in_seconds = self.get_converted_pv_value(Records.WAIT.name)
+        time.sleep(wait_in_seconds)
         for repeat in range(1, no_repetitions+1):
             self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
 
@@ -437,7 +440,7 @@ def main():
 
     print("IOC started")
 
-    macros = get_macro_values()
+    macros = {'FILEPATH': 'c:\\instrument\\file.txt', 'SIMULATE':'1', 'ADDR':''}
 
     serve_forever(
         args.ioc_name,
