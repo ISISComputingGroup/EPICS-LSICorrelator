@@ -6,6 +6,7 @@ from correlator_driver_functions import LSiCorrelatorVendorInterface
 from pvdb import Records
 
 from test_utils import test_data
+from unittest.mock import patch
 
 macros = {
     "SIMULATE": "1",
@@ -40,6 +41,11 @@ class LSICorrelatorTests(unittest.TestCase):
 
         self.assertTrue(self.driver.has_data)
         self.assertTrue(self.driver.is_connected)
+    @patch('time.sleep')
+    def test_GIVEN_wait_set_to_two_WHEN_data_taken_THEN_we_have_waited_for_two_seconds(self, mock_api_call):
+        self.driver.take_data(2)
+        mock_api_call.assert_called_with(2)
+
 
     def test_GIVEN_device_connected_WHEN_data_taken_THEN_driver_updated_with_correlation_and_time_lags(self):
 

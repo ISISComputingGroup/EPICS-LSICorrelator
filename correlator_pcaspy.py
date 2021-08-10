@@ -285,13 +285,13 @@ class LSiCorrelatorIOC(Driver):
 
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         wait_in_seconds = self.get_converted_pv_value(Records.WAIT.name)
-        time.sleep(wait_in_seconds)
+
         for repeat in range(1, no_repetitions+1):
             self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
 
             self.update_pv_and_write_to_device(Records.RUNNING.name, True)
 
-            self.driver.take_data()
+            self.driver.take_data(wait_in_seconds)
 
             self.update_pv_and_write_to_device(Records.RUNNING.name, False)
 

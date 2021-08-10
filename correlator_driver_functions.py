@@ -5,6 +5,7 @@ import os
 import traceback
 from io import StringIO
 from typing import Dict, TextIO, Tuple
+import time
 
 import six
 
@@ -104,10 +105,11 @@ class LSiCorrelatorVendorInterface:
         self.device.configure()
 
     @_error_handler
-    def take_data(self):
+    def take_data(self, wait_in_seconds=0):
         """
         Starts taking data from the LSi Correlator once with the currently configure device settings.
         """
+        time.sleep(wait_in_seconds)
         self.device.start()
 
         while self.device.MeasurementOn():
