@@ -84,6 +84,8 @@ class LSiCorrelatorIOC(Driver):
 
         self.pv_prefix = pv_prefix
 
+        self.already_started = False
+
         defaults = {
             Records.CORRELATIONTYPE.value: LSI_Param.CorrelationType.AUTO,
             Records.NORMALIZATION.value: LSI_Param.Normalization.COMPENSATED,
@@ -245,8 +247,12 @@ class LSiCorrelatorIOC(Driver):
             value: Value to set
         """
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {} value {}".format(reason, value))
-        if reason == Records.START.name:
+        if reason == Records.START.name and not self.already_started:
             THREADPOOL.submit(self.take_data)
+        elif reason == Records.START.name and self.already_started:
+            self.update_error_pv_print_and_log("LSI --- Cannot configure: Measurement active")
+
+
 
         if reason.endswith(":SP"):
             # Update both SP and non-SP fields
@@ -285,6 +291,8 @@ class LSiCorrelatorIOC(Driver):
 
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         wait_in_seconds = self.get_converted_pv_value(Records.WAIT.name)
+        start_pv = self.get_converted_pv_value(Records.START.name)
+        self.already_started = True
 
         for repeat in range(1, no_repetitions+1):
             self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
@@ -308,6 +316,7 @@ class LSiCorrelatorIOC(Driver):
                 self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected",
                                                    "INVALID")
                 self.set_disconnected_alarms(True)
+        self.already_started = False
 
         # Set start PV back to NO, purely for aesthetics (this PV is actually always ready)
         self.update_param_and_fields(Records.START.name, 0)
