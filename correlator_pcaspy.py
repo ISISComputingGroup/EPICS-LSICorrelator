@@ -106,7 +106,8 @@ class LSiCorrelatorIOC(Driver):
             Records.LASER_WAVELENGTH.value: 642,
             Records.OUTPUTFILE.value: "No data taken yet",
             Records.SIM.value: 0,
-            Records.DISABLE.value: 0
+            Records.DISABLE.value: 0,
+            Records.MIN_TIME_LAG.value: 200
         }
 
         self.alarm_status = Alarm.NO_ALARM

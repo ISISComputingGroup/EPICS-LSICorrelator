@@ -88,6 +88,7 @@ class LSiCorrelatorVendorInterface:
         lags = np.asarray(self.device.Lags)
 
         lags = lags[np.isfinite(corr)]
+
         corr = corr[np.isfinite(corr)]
 
         trace_a = np.asarray(self.device.TraceChA)
