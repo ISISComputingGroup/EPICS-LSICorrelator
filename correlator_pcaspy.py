@@ -293,6 +293,7 @@ class LSiCorrelatorIOC(Driver):
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         wait_in_seconds = self.get_converted_pv_value(Records.WAIT.name)
         start_pv = self.get_converted_pv_value(Records.START.name)
+        min_time_lag = self.get_converted_pv_value(Records.MIN_TIME_LAG.name)
         self.already_started = True
 
         for repeat in range(1, no_repetitions+1):
@@ -300,7 +301,7 @@ class LSiCorrelatorIOC(Driver):
 
             self.update_pv_and_write_to_device(Records.RUNNING.name, True)
 
-            self.driver.take_data(wait_in_seconds)
+            self.driver.take_data(min_time_lag,wait_in_seconds)
 
             self.update_pv_and_write_to_device(Records.RUNNING.name, False)
 
@@ -310,7 +311,7 @@ class LSiCorrelatorIOC(Driver):
 
                 with open(self.get_user_filename(), "w+") as user_file, \
                         open(self.get_archive_filename(), "w+") as archive_file:
-                    self.driver.save_data(user_file, archive_file, self.get_metadata())
+                    self.driver.save_data(min_time_lag,user_file, archive_file, self.get_metadata())
             else:
                 # No data returned, correlator may be disconnected
                 self.update_pv_and_write_to_device(Records.CONNECTED.name, False)
@@ -450,7 +451,7 @@ def main():
 
     print("IOC started")
 
-    macros = {'FILEPATH': 'c:\\instrument\\file.txt', 'SIMULATE':'1', 'ADDR':''}
+    macros = {'FILEPATH': 'c:\\instrument', 'SIMULATE':'1', 'ADDR':''}
 
     serve_forever(
         args.ioc_name,

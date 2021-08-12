@@ -72,7 +72,14 @@ class LSiCorrelatorVendorInterface:
         self.lags = None
         self.has_data = False
 
-    def get_data_as_arrays(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def greater_than_min_time_lag(self,lag, pv_value):
+        if lag >= pv_value:
+            return True
+        else:
+            return False
+
+
+    def get_data_as_arrays(self, min_time_lag) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
         The correlation function and time lags are filtered to finite values only.
@@ -86,6 +93,21 @@ class LSiCorrelatorVendorInterface:
         """
         corr = np.asarray(self.device.Correlation)
         lags = np.asarray(self.device.Lags)
+
+
+
+        indices = []
+        for count in range(0, len(lags)):
+            isGreater = self.greater_than_min_time_lag(lags[count],min_time_lag)
+            if isGreater == False:
+                indices.append(count)
+
+        lags = np.delete(lags,indices)
+        corr = np.delete(corr,indices)
+        print_and_log(min_time_lag)
+
+
+
 
         lags = lags[np.isfinite(corr)]
 
@@ -106,7 +128,7 @@ class LSiCorrelatorVendorInterface:
         self.device.configure()
 
     @_error_handler
-    def take_data(self, wait_in_seconds=0):
+    def take_data(self,min_time_lag, wait_in_seconds=0):
         """
         Starts taking data from the LSi Correlator once with the currently configure device settings.
         """
@@ -122,7 +144,7 @@ class LSiCorrelatorVendorInterface:
             self.is_connected = False
         else:
             self.has_data = True
-            corr, lags, _, _, _ = self.get_data_as_arrays()
+            corr, lags, _, _, _ = self.get_data_as_arrays(min_time_lag)
             self.corr = corr
             self.lags = lags
 
@@ -166,7 +188,7 @@ class LSiCorrelatorVendorInterface:
         return full_filename
 
 
-    def save_data(self, user_file: TextIO, archive_file: TextIO, metadata: Dict):
+    def save_data(self,min_time_lag, user_file: TextIO, archive_file: TextIO, metadata: Dict):
         """
         Write the correlation function, time lags, traces and metadata to user and archive files.
 
@@ -175,7 +197,7 @@ class LSiCorrelatorVendorInterface:
             archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
             metadata (dict): A dictionary of metadata to write to the file
         """
-        correlation, time_lags, trace_a, trace_b, trace_time = self.get_data_as_arrays()
+        correlation, time_lags, trace_a, trace_b, trace_time = self.get_data_as_arrays(min_time_lag)
 
         correlation_data = np.vstack((time_lags, correlation)).T
         raw_channel_data = np.vstack((trace_time, trace_a, trace_b)).T
