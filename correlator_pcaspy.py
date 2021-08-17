@@ -101,6 +101,7 @@ class LSiCorrelatorIOC(Driver):
             Records.RUNNING.value: False,
             Records.WAITING.value: False,
             Records.WAIT.value: 0,
+            Records.WAIT_AT_START.value: False,
             Records.SCATTERING_ANGLE.value: 110,
             Records.SAMPLE_TEMP.value: 298,
             Records.SOLVENT_VISCOSITY.value: 1,
@@ -279,6 +280,11 @@ class LSiCorrelatorIOC(Driver):
             pv_value = self.getParam(reason)
 
         return pv_value
+    
+    def wait(self, wait_in_seconds):
+        self.update_pv_and_write_to_device(Records.WAITING.name, True)
+        time.sleep(wait_in_seconds)
+        self.update_pv_and_write_to_device(Records.WAITING.name, False)
 
     @_error_handler
     def take_data(self):
@@ -294,21 +300,20 @@ class LSiCorrelatorIOC(Driver):
 
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         wait_in_seconds = self.get_converted_pv_value(Records.WAIT.name)
-        start_pv = self.get_converted_pv_value(Records.START.name)
+        wait_at_start = self.get_converted_pv_value(Records.WAIT_AT_START.name)
         min_time_lag = self.get_converted_pv_value(Records.MIN_TIME_LAG.name)
         self.already_started = True
+        first_repetition = 1
 
-        for repeat in range(1, no_repetitions+1):
+        for repeat in range(first_repetition, no_repetitions+1):
+
             self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
-            self.update_pv_and_write_to_device(Records.WAITING.name, True)
-            time.sleep(wait_in_seconds)
-            self.update_pv_and_write_to_device(Records.WAITING.name, False)
+
+            if repeat == first_repetition and wait_at_start or repeat != first_repetition:
+                self.wait(wait_in_seconds)
 
             self.update_pv_and_write_to_device(Records.RUNNING.name, True)
-
-
             self.driver.take_data(min_time_lag)
-
             self.update_pv_and_write_to_device(Records.RUNNING.name, False)
 
             if self.driver.has_data:
