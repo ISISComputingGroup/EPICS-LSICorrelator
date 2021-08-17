@@ -128,7 +128,7 @@ class LSiCorrelatorVendorInterface:
         self.device.configure()
 
     @_error_handler
-    def take_data(self,min_time_lag):
+    def take_data(self, min_time_lag):
         """
         Starts taking data from the LSi Correlator once with the currently configure device settings.
         """
