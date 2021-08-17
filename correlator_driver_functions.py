@@ -72,12 +72,28 @@ class LSiCorrelatorVendorInterface:
         self.lags = None
         self.has_data = False
 
-    def greater_than_min_time_lag(self,lag, pv_value):
-        if lag >= pv_value:
-            return True
-        else:
-            return False
+    def remove_data_with_time_lags_lower_than_minimum(self, lags: np.ndarray, corr: np.ndarray, min_time_lag: float) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Remove lags and corresponding corr values which have lags values below the minimum time lag
+        
+        Args:
+            lags (ndarray): The original time lags values to remove values from
+            corr (ndarray): The original correlation function to remove values from
+            min_time_lag (float): The minimum time lag to include
 
+        Returns:
+            lags (ndarray): The correlation function values whose corresponding time lag is greater than or equal to min_time_lag
+            corr (ndarray): Time lags that are greater than min_time_lag
+        """
+        indices = []
+        for count in range(0, len(lags)):
+            if lags[count] >= min_time_lag:
+                indices.append(count)
+
+        lags = np.delete(lags,indices)
+        corr = np.delete(corr,indices)
+
+        return lags, corr
 
     def get_data_as_arrays(self, min_time_lag) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -85,8 +101,8 @@ class LSiCorrelatorVendorInterface:
         The correlation function and time lags are filtered to finite values only.
 
         Returns:
-            Corr (ndarray): The finite values of the correlation function
-            Lags (ndarray): Time lags where the correlation function is finite
+            Corr (ndarray): The finite values of the correlation function whose corresponding time lag is greater than or equal to min_time_lag
+            Lags (ndarray): Time lags where the correlation function is finite that are greater than or equal to min_time_lag
             trace_A (ndarray): Raw photon counts for channel A
             trace_B (ndarray): Raw photon counts for channel B
             trace_time (ndarray): Time trace constructed from length of raw data
@@ -94,23 +110,9 @@ class LSiCorrelatorVendorInterface:
         corr = np.asarray(self.device.Correlation)
         lags = np.asarray(self.device.Lags)
 
-
-
-        indices = []
-        for count in range(0, len(lags)):
-            isGreater = self.greater_than_min_time_lag(lags[count],min_time_lag)
-            if isGreater == False:
-                indices.append(count)
-
-        lags = np.delete(lags,indices)
-        corr = np.delete(corr,indices)
-        print_and_log(min_time_lag)
-
-
-
+        lags, corr = self.remove_data_with_time_lags_lower_than_minimum(lags, corr, min_time_lag)
 
         lags = lags[np.isfinite(corr)]
-
         corr = corr[np.isfinite(corr)]
 
         trace_a = np.asarray(self.device.TraceChA)
