@@ -5,7 +5,6 @@ import os
 import traceback
 from io import StringIO
 from typing import Dict, TextIO, Tuple
-import time
 
 import six
 
