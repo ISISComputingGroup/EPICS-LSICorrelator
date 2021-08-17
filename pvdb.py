@@ -147,6 +147,10 @@ class Records(Enum):
                      convert_from_pv=bool
                      )
 
+    WAITING = Record('WAITING', PARAM_FIELDS_BINARY,
+                     convert_from_pv=bool
+                     )
+
     CONNECTED = Record("CONNECTED",
                        PARAM_FIELDS_BINARY,
                        convert_from_pv=bool
@@ -189,6 +193,8 @@ class Records(Enum):
     WAIT = Record("WAIT",float_pv_with_unit('s'), has_setpoint = True)
 
     MIN_TIME_LAG =Record('MIN_TIME_LAG',float_pv_with_unit('ns'), has_setpoint= True )
+
+
 
 STATIC_PV_DATABASE = {}
 for record in Records:

@@ -298,10 +298,14 @@ class LSiCorrelatorIOC(Driver):
 
         for repeat in range(1, no_repetitions+1):
             self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
+            self.update_pv_and_write_to_device(Records.WAITING.name, True)
+            time.sleep(wait_in_seconds)
+            self.update_pv_and_write_to_device(Records.WAITING.name, False)
 
             self.update_pv_and_write_to_device(Records.RUNNING.name, True)
 
-            self.driver.take_data(min_time_lag,wait_in_seconds)
+
+            self.driver.take_data(min_time_lag)
 
             self.update_pv_and_write_to_device(Records.RUNNING.name, False)
 
