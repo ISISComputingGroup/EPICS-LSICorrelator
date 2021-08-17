@@ -305,6 +305,8 @@ class LSiCorrelatorIOC(Driver):
         self.already_started = True
         first_repetition = 1
 
+        self.update_pv_and_write_to_device(Records.TAKING_DATA.name, True)
+
         for repeat in range(first_repetition, no_repetitions+1):
 
             self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
@@ -329,6 +331,8 @@ class LSiCorrelatorIOC(Driver):
                 self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected",
                                                    "INVALID")
                 self.set_disconnected_alarms(True)
+        
+        self.update_pv_and_write_to_device(Records.TAKING_DATA.name, False)
         self.already_started = False
 
         # Set start PV back to NO, purely for aesthetics (this PV is actually always ready)

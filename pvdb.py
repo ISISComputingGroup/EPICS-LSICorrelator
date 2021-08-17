@@ -146,6 +146,11 @@ class Records(Enum):
                      PARAM_FIELDS_BINARY,
                      convert_from_pv=bool
                      )
+    
+    TAKING_DATA = Record("TAKING_DATA",
+                     PARAM_FIELDS_BINARY,
+                     convert_from_pv=bool
+                     )
 
     WAITING = Record('WAITING', PARAM_FIELDS_BINARY,
                      convert_from_pv=bool
