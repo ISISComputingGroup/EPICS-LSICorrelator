@@ -99,6 +99,8 @@ class LSiCorrelatorIOC(Driver):
             Records.CURRENT_REPETITION.value: 0,
             Records.CONNECTED.value: self.driver.is_connected,
             Records.RUNNING.value: False,
+            Records.WAITING.value: False,
+            Records.WAIT.value: 0,
             Records.SCATTERING_ANGLE.value: 110,
             Records.SAMPLE_TEMP.value: 298,
             Records.SOLVENT_VISCOSITY.value: 1,
