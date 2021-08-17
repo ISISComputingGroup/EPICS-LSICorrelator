@@ -86,7 +86,7 @@ class LSiCorrelatorVendorInterface:
         """
         indices = []
         for count in range(0, len(lags)):
-            if lags[count] >= min_time_lag:
+            if lags[count] < min_time_lag:
                 indices.append(count)
 
         lags = np.delete(lags,indices)

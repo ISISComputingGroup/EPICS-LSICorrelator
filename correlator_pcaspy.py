@@ -466,7 +466,7 @@ def main():
 
     print("IOC started")
 
-    macros = {'FILEPATH': 'c:\\instrument', 'SIMULATE':'1', 'ADDR':''}
+    macros = get_macro_values()
 
     serve_forever(
         args.ioc_name,
