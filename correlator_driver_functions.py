@@ -99,6 +99,9 @@ class LSiCorrelatorVendorInterface:
         Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
         The correlation function and time lags are filtered to finite values only.
 
+        Args:
+            min_time_lag (float): The minimum time lag to include
+
         Returns:
             Corr (ndarray): The finite values of the correlation function whose corresponding time lag is greater than or equal to min_time_lag
             Lags (ndarray): Time lags where the correlation function is finite that are greater than or equal to min_time_lag
@@ -132,8 +135,10 @@ class LSiCorrelatorVendorInterface:
     def take_data(self, min_time_lag):
         """
         Starts taking data from the LSi Correlator once with the currently configure device settings.
-        """
 
+        Args:
+            min_time_lag (float): The minimum time lag to include
+        """
         self.device.start()
 
         while self.device.MeasurementOn():
@@ -188,12 +193,12 @@ class LSiCorrelatorVendorInterface:
 
         return full_filename
 
-
-    def save_data(self,min_time_lag, user_file: TextIO, archive_file: TextIO, metadata: Dict):
+    def save_data(self, min_time_lag, user_file: TextIO, archive_file: TextIO, metadata: Dict):
         """
         Write the correlation function, time lags, traces and metadata to user and archive files.
 
         Args:
+            min_time_lag (float): The minimum time lag to include
             user_file (TextIO): The user file to write metadata, correlation, time_lags and the traces to
             archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
             metadata (dict): A dictionary of metadata to write to the file
