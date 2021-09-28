@@ -5,6 +5,7 @@ import sys
 import os
 import traceback
 from typing import Dict, Any
+import time
 
 import six
 
@@ -83,6 +84,8 @@ class LSiCorrelatorIOC(Driver):
 
         self.pv_prefix = pv_prefix
 
+        self.already_started = False
+
         defaults = {
             Records.CORRELATIONTYPE.value: LSI_Param.CorrelationType.AUTO,
             Records.NORMALIZATION.value: LSI_Param.Normalization.COMPENSATED,
@@ -96,6 +99,9 @@ class LSiCorrelatorIOC(Driver):
             Records.CURRENT_REPETITION.value: 0,
             Records.CONNECTED.value: self.driver.is_connected,
             Records.RUNNING.value: False,
+            Records.WAITING.value: False,
+            Records.WAIT.value: 0,
+            Records.WAIT_AT_START.value: False,
             Records.SCATTERING_ANGLE.value: 110,
             Records.SAMPLE_TEMP.value: 298,
             Records.SOLVENT_VISCOSITY.value: 1,
@@ -103,7 +109,8 @@ class LSiCorrelatorIOC(Driver):
             Records.LASER_WAVELENGTH.value: 642,
             Records.OUTPUTFILE.value: "No data taken yet",
             Records.SIM.value: 0,
-            Records.DISABLE.value: 0
+            Records.DISABLE.value: 0,
+            Records.MIN_TIME_LAG.value: 200
         }
 
         self.alarm_status = Alarm.NO_ALARM
@@ -244,8 +251,12 @@ class LSiCorrelatorIOC(Driver):
             value: Value to set
         """
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {} value {}".format(reason, value))
-        if reason == Records.START.name:
+        if reason == Records.START.name and not self.already_started:
             THREADPOOL.submit(self.take_data)
+        elif reason == Records.START.name and self.already_started:
+            self.update_error_pv_print_and_log("LSI --- Cannot configure: Measurement active")
+
+
 
         if reason.endswith(":SP"):
             # Update both SP and non-SP fields
@@ -269,6 +280,11 @@ class LSiCorrelatorIOC(Driver):
             pv_value = self.getParam(reason)
 
         return pv_value
+    
+    def wait(self, wait_in_seconds):
+        self.update_pv_and_write_to_device(Records.WAITING.name, True)
+        time.sleep(wait_in_seconds)
+        self.update_pv_and_write_to_device(Records.WAITING.name, False)
 
     @_error_handler
     def take_data(self):
@@ -283,13 +299,23 @@ class LSiCorrelatorIOC(Driver):
             self.update_error_pv_print_and_log(str(e))
 
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
-        for repeat in range(1, no_repetitions+1):
+        wait_in_seconds = self.get_converted_pv_value(Records.WAIT.name)
+        wait_at_start = self.get_converted_pv_value(Records.WAIT_AT_START.name)
+        min_time_lag = self.get_converted_pv_value(Records.MIN_TIME_LAG.name)
+        self.already_started = True
+        first_repetition = 1
+
+        self.update_pv_and_write_to_device(Records.TAKING_DATA.name, True)
+
+        for repeat in range(first_repetition, no_repetitions+1):
+
             self.update_pv_and_write_to_device(Records.CURRENT_REPETITION.name, repeat)
 
+            if repeat == first_repetition and wait_at_start or repeat != first_repetition:
+                self.wait(wait_in_seconds)
+
             self.update_pv_and_write_to_device(Records.RUNNING.name, True)
-
-            self.driver.take_data()
-
+            self.driver.take_data(min_time_lag)
             self.update_pv_and_write_to_device(Records.RUNNING.name, False)
 
             if self.driver.has_data:
@@ -298,13 +324,16 @@ class LSiCorrelatorIOC(Driver):
 
                 with open(self.get_user_filename(), "w+") as user_file, \
                         open(self.get_archive_filename(), "w+") as archive_file:
-                    self.driver.save_data(user_file, archive_file, self.get_metadata())
+                    self.driver.save_data(min_time_lag,user_file, archive_file, self.get_metadata())
             else:
                 # No data returned, correlator may be disconnected
                 self.update_pv_and_write_to_device(Records.CONNECTED.name, False)
                 self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected",
                                                    "INVALID")
                 self.set_disconnected_alarms(True)
+        
+        self.update_pv_and_write_to_device(Records.TAKING_DATA.name, False)
+        self.already_started = False
 
         # Set start PV back to NO, purely for aesthetics (this PV is actually always ready)
         self.update_param_and_fields(Records.START.name, 0)

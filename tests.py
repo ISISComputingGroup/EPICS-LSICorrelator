@@ -6,6 +6,7 @@ from correlator_driver_functions import LSiCorrelatorVendorInterface
 from pvdb import Records
 
 from test_utils import test_data
+from unittest.mock import patch
 
 macros = {
     "SIMULATE": "1",
@@ -30,13 +31,13 @@ class LSICorrelatorTests(unittest.TestCase):
         self.assertTrue(self.driver.is_connected)
         self.device.disconnected = True
 
-        self.driver.take_data()
+        self.driver.take_data(0)
 
         self.assertFalse(self.driver.has_data)
         self.assertFalse(self.driver.is_connected)
 
     def test_GIVEN_device_connected_WHEN_data_taken_THEN_device_reads_has_data_and_connected(self):
-        self.driver.take_data()
+        self.driver.take_data(0)
 
         self.assertTrue(self.driver.has_data)
         self.assertTrue(self.driver.is_connected)
@@ -45,7 +46,7 @@ class LSICorrelatorTests(unittest.TestCase):
 
         self.mocked_api.corr = test_data.corr
         self.mocked_api.lags = test_data.lags
-        self.driver.take_data()
+        self.driver.take_data(0)
 
         self.assertTrue(np.allclose(self.driver.corr, test_data.corr_without_nans))
         self.assertTrue(np.allclose(self.driver.lags, test_data.lags_without_nans))
@@ -56,7 +57,7 @@ class LSICorrelatorTests(unittest.TestCase):
         self.device.TraceChA = test_data.trace_a
         self.device.TraceChB = test_data.trace_b
 
-        corr, lags, trace_a, trace_b, trace_time = self.driver.get_data_as_arrays()
+        corr, lags, trace_a, trace_b, trace_time = self.driver.get_data_as_arrays(0)
 
         self.assertTrue(np.allclose(corr, test_data.corr_without_nans))
         self.assertTrue(np.allclose(lags, test_data.lags_without_nans))
@@ -65,12 +66,12 @@ class LSICorrelatorTests(unittest.TestCase):
         self.assertTrue(np.allclose(trace_time, test_data.trace_time))
 
     def test_WHEN_data_taken_THEN_start_called(self):
-        self.driver.take_data()
+        self.driver.take_data(0)
         self.device.start.assert_called_once()
 
     def test_WHEN_data_taken_AND_measurement_on_THEN_update_called_WHEN_measurement_off_THEN_update_not_called(self):
         starting_update_count = self.mocked_api.update_count
-        self.driver.take_data()
+        self.driver.take_data(0)
         self.assertGreater(self.mocked_api.update_count, starting_update_count)
         self.assertFalse(self.mocked_api.update_called_when_measurement_not_on)
 
@@ -93,7 +94,7 @@ class LSICorrelatorTests(unittest.TestCase):
         # Save data to two temporary files that are discarded
         with NamedTemporaryFile(mode="w+") as user_file, NamedTemporaryFile(mode="w+") as archive_file:
 
-            self.driver.save_data(user_file, archive_file, metadata)
+            self.driver.save_data(0, user_file, archive_file, metadata)
 
             # Read test_data.dat
             with open(test_data.test_data_file, mode="r") as test_data_file:

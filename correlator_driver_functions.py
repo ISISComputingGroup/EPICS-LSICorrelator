@@ -71,20 +71,48 @@ class LSiCorrelatorVendorInterface:
         self.lags = None
         self.has_data = False
 
-    def get_data_as_arrays(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def remove_data_with_time_lags_lower_than_minimum(self, lags: np.ndarray, corr: np.ndarray, min_time_lag: float) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Remove lags and corresponding corr values which have lags values below the minimum time lag
+        
+        Args:
+            lags (ndarray): The original time lags values to remove values from
+            corr (ndarray): The original correlation function to remove values from
+            min_time_lag (float): The minimum time lag to include
+
+        Returns:
+            lags (ndarray): The correlation function values whose corresponding time lag is greater than or equal to min_time_lag
+            corr (ndarray): Time lags that are greater than min_time_lag
+        """
+        indices = []
+        for count in range(0, len(lags)):
+            if lags[count] < min_time_lag:
+                indices.append(count)
+
+        lags = np.delete(lags,indices)
+        corr = np.delete(corr,indices)
+
+        return lags, corr
+
+    def get_data_as_arrays(self, min_time_lag) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
         The correlation function and time lags are filtered to finite values only.
 
+        Args:
+            min_time_lag (float): The minimum time lag to include
+
         Returns:
-            Corr (ndarray): The finite values of the correlation function
-            Lags (ndarray): Time lags where the correlation function is finite
+            Corr (ndarray): The finite values of the correlation function whose corresponding time lag is greater than or equal to min_time_lag
+            Lags (ndarray): Time lags where the correlation function is finite that are greater than or equal to min_time_lag
             trace_A (ndarray): Raw photon counts for channel A
             trace_B (ndarray): Raw photon counts for channel B
             trace_time (ndarray): Time trace constructed from length of raw data
         """
         corr = np.asarray(self.device.Correlation)
         lags = np.asarray(self.device.Lags)
+
+        lags, corr = self.remove_data_with_time_lags_lower_than_minimum(lags, corr, min_time_lag)
 
         lags = lags[np.isfinite(corr)]
         corr = corr[np.isfinite(corr)]
@@ -104,9 +132,12 @@ class LSiCorrelatorVendorInterface:
         self.device.configure()
 
     @_error_handler
-    def take_data(self):
+    def take_data(self, min_time_lag):
         """
         Starts taking data from the LSi Correlator once with the currently configure device settings.
+
+        Args:
+            min_time_lag (float): The minimum time lag to include
         """
         self.device.start()
 
@@ -119,7 +150,7 @@ class LSiCorrelatorVendorInterface:
             self.is_connected = False
         else:
             self.has_data = True
-            corr, lags, _, _, _ = self.get_data_as_arrays()
+            corr, lags, _, _, _ = self.get_data_as_arrays(min_time_lag)
             self.corr = corr
             self.lags = lags
 
@@ -162,17 +193,17 @@ class LSiCorrelatorVendorInterface:
 
         return full_filename
 
-
-    def save_data(self, user_file: TextIO, archive_file: TextIO, metadata: Dict):
+    def save_data(self, min_time_lag, user_file: TextIO, archive_file: TextIO, metadata: Dict):
         """
         Write the correlation function, time lags, traces and metadata to user and archive files.
 
         Args:
+            min_time_lag (float): The minimum time lag to include
             user_file (TextIO): The user file to write metadata, correlation, time_lags and the traces to
             archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
             metadata (dict): A dictionary of metadata to write to the file
         """
-        correlation, time_lags, trace_a, trace_b, trace_time = self.get_data_as_arrays()
+        correlation, time_lags, trace_a, trace_b, trace_time = self.get_data_as_arrays(min_time_lag)
 
         correlation_data = np.vstack((time_lags, correlation)).T
         raw_channel_data = np.vstack((trace_time, trace_a, trace_b)).T
