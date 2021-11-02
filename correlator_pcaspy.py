@@ -53,7 +53,12 @@ INSTNAME_PV = "{pv_prefix}DAE:INSTNAME"
 
 
 def get_base_pv(reason: str):
-    """ Trims trailing :SP off a PV name """
+    """ 
+    Trims trailing :SP off a PV name
+
+    Args:
+        reason: PV name
+    """
     return reason[:-3]
 
 
@@ -142,6 +147,9 @@ class LSiCorrelatorIOC(Driver):
     def write_defaults_to_device(self, defaults):
         """
         Update PV and write to device
+
+        Args:
+            defaults: default values
         """
         for record, default_value in defaults.items():
             # Write defaults to device
@@ -295,6 +303,12 @@ class LSiCorrelatorIOC(Driver):
         return pv_value
 
     def wait(self, wait_in_seconds):
+        """
+        Wait for period of time set my PV
+
+        Args:
+            wait_in_seconds: time in seconds set by PV
+        """
         self.update_pv_and_write_to_device(Records.WAITING.name, True)
         time.sleep(wait_in_seconds)
         self.update_pv_and_write_to_device(Records.WAITING.name, False)
