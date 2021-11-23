@@ -21,7 +21,6 @@ from mocked_correlator_api import MockedCorrelatorAPI
 
 from pvdb import Records
 from server_common.utilities import print_and_log
-from server_common.channel_access import ChannelAccess
 from file_format import FILE_SCHEME
 
 
@@ -153,45 +152,6 @@ class LSiCorrelatorVendorInterface:
             corr, lags, _, _, _ = self.get_data_as_arrays(min_time_lag)
             self.corr = corr
             self.lags = lags
-
-    def get_archive_filename(self):
-        """
-        Returns a filename which the archive data file will be saved with
-        """
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-        run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
-        instrument = ChannelAccess.caget(INSTNAME_PV.format(pv_prefix=self.pv_prefix))
-        
-        filename = "{instrument}{run_number}_DLS_{timestamp}.txt".format(instrument=instrument,
-                                                                         run_number=run_number,
-                                                                         timestamp=timestamp)
-
-        full_filename = os.path.join(DATA_DIR, filename)
-        print_and_log("filename1: {}".format(full_filename))
-        return full_filename
-
-    def get_user_filename(self):
-        """ Returns a filename given the current run number and title """
-        run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
-        print_and_log("run number = {}".format(run_number))
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-
-        experiment_name = self.get_converted_pv_value(Records.EXPERIMENTNAME.name)
-
-        if experiment_name == "":
-            # No name supplied, use run title
-            experiment_name = ChannelAccess.caget(TITLE_PV.format(pv_prefix=self.pv_prefix))
-
-        filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
-            run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
-            )
-
-        # Update last used filename PV
-        full_filename = os.path.join(self.user_filepath, filename)
-        print_and_log("filename: {}".format(full_filename))
-        self.update_pv_and_write_to_device(Records.OUTPUTFILE.name, full_filename)
-
-        return full_filename
 
     def save_data(self, min_time_lag, user_file: TextIO, archive_file: TextIO, metadata: Dict):
         """
