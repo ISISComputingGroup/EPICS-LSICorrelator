@@ -20,6 +20,7 @@ sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_serve
 
 from LSI import LSI_Param
 from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
+from config import Config, PV, LSiPVSeverity
 
 
 from pvdb import STATIC_PV_DATABASE, Records
@@ -28,21 +29,12 @@ from server_common.utilities import print_and_log
 from server_common.channel_access import ChannelAccess
 from server_common.helpers import register_ioc_start, get_macro_values
 
-
-DATA_DIR = r"c:\Data"
-
-
 def get_base_pv(reason: str):
     """ Trims trailing :SP off a PV name """
     return reason[:-3]
 
 
 THREADPOOL = ThreadPoolExecutor()
-
-# PVs from the DAE to get information about instrument
-RUNNUMBER_PV = "{pv_prefix}DAE:RUNNUMBER"
-TITLE_PV = "{pv_prefix}DAE:TITLE"
-INSTNAME_PV = "{pv_prefix}DAE:INSTNAME"
 
 
 def remove_non_ascii(text_to_check: str) -> str:
@@ -70,11 +62,11 @@ class LSiCorrelatorIOC(Driver):
         super().__init__()
 
         try:
-            self.user_filepath = macros["FILEPATH"]
+            self.user_filepath = macros[Config.FILEPATH_MACRO]
         except KeyError:
             raise RuntimeError("No file path specified to save data to")
 
-        self.simulated = macros["SIMULATE"] == "1"
+        self.simulated = macros[Config.SIMULATE_MACRO] == "1"
         if self.simulated:
             print("WARNING! Started in simulation mode")
 
@@ -119,7 +111,7 @@ class LSiCorrelatorIOC(Driver):
         if not os.path.isdir(self.user_filepath):
             self.update_error_pv_print_and_log(
                 "LSiCorrelatorDriver: {} is invalid file path".format(self.user_filepath),
-                "MAJOR"
+                LSiPVSeverity.MAJOR.value
             )
 
         for record, default_value in defaults.items():
@@ -129,7 +121,7 @@ class LSiCorrelatorIOC(Driver):
 
         self.updatePVs()
 
-    def update_error_pv_print_and_log(self, error: str, severity: str = "INFO", src: str = "LSI") -> None:
+    def update_error_pv_print_and_log(self, error: str, severity: LSiPVSeverity = LSiPVSeverity.INFO, src: str = "LSI") -> None:
         """
         Updates the error PV with the provided error message, then prints and logs the error
 
@@ -139,7 +131,7 @@ class LSiCorrelatorIOC(Driver):
             src (optional): Gives the source of the message. Default source is LSI (from this IOC).
         """
         self.update_pv_and_write_to_device(Records.ERRORMSG.name, error)
-        print_and_log(error, severity, src)
+        print_and_log(error, severity.value, src)
 
     def set_disconnected_alarms(self, in_alarm: bool):
         """
@@ -329,7 +321,7 @@ class LSiCorrelatorIOC(Driver):
                 # No data returned, correlator may be disconnected
                 self.update_pv_and_write_to_device(Records.CONNECTED.name, False)
                 self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected",
-                                                   "INVALID")
+                                                   LSiPVSeverity.INVALID)
                 self.set_disconnected_alarms(True)
         
         self.update_pv_and_write_to_device(Records.TAKING_DATA.name, False)
@@ -368,14 +360,14 @@ class LSiCorrelatorIOC(Driver):
             full_filename = os.path.join(self.user_filepath, "LSICORR_IOC_test_archive_save.dat")
         else:
             timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-            run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
-            instrument = ChannelAccess.caget(INSTNAME_PV.format(pv_prefix=self.pv_prefix))
+            run_number = ChannelAccess.caget(PV.RUNNUMBER.add_prefix(prefix=self.pv_prefix))
+            instrument = ChannelAccess.caget(PV.INSTNAME.add_prefix(prefix=self.pv_prefix))
 
             filename = "{instrument}{run_number}_DLS_{timestamp}.txt".format(instrument=instrument,
                                                                              run_number=run_number,
                                                                              timestamp=timestamp)
 
-            full_filename = os.path.join(DATA_DIR, filename)
+            full_filename = os.path.join(Config.DATA_DIR, filename)
 
         return full_filename
 
@@ -389,7 +381,7 @@ class LSiCorrelatorIOC(Driver):
         if self.simulated:
             filename = "LSICORR_IOC_test_user_save.dat"
         else:
-            run_number = ChannelAccess.caget(RUNNUMBER_PV.format(pv_prefix=self.pv_prefix))
+            run_number = ChannelAccess.caget(PV.RUNNUMBER.add_prefix(prefix=self.pv_prefix))
             print_and_log("run number = {}".format(run_number))
             timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
 
@@ -397,7 +389,7 @@ class LSiCorrelatorIOC(Driver):
 
             if experiment_name == "":
                 # No name supplied, use run title
-                experiment_name = ChannelAccess.caget(TITLE_PV.format(pv_prefix=self.pv_prefix))
+                experiment_name = ChannelAccess.caget(PV.TITLE.add_prefix(prefix=self.pv_prefix))
 
             filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
                 run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
