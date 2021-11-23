@@ -20,7 +20,7 @@ sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_serve
 
 from LSI import LSI_Param
 from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
-from config import Config, PV, LSiPVSeverity
+from config import Constants, PV, LSiPVSeverity, Macro
 
 
 from pvdb import STATIC_PV_DATABASE, Records
@@ -62,11 +62,11 @@ class LSiCorrelatorIOC(Driver):
         super().__init__()
 
         try:
-            self.user_filepath = macros[Config.FILEPATH_MACRO]
+            self.user_filepath = macros[Macro.FILEPATH.name]
         except KeyError:
             raise RuntimeError("No file path specified to save data to")
 
-        self.simulated = macros[Config.SIMULATE_MACRO] == "1"
+        self.simulated = macros[Macro.SIMULATE.name] == "1"
         if self.simulated:
             print("WARNING! Started in simulation mode")
 
@@ -367,7 +367,7 @@ class LSiCorrelatorIOC(Driver):
                                                                              run_number=run_number,
                                                                              timestamp=timestamp)
 
-            full_filename = os.path.join(Config.DATA_DIR, filename)
+            full_filename = os.path.join(Constants.DATA_DIR, filename)
 
         return full_filename
 

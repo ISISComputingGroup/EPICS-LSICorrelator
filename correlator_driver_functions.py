@@ -22,7 +22,7 @@ from mocked_correlator_api import MockedCorrelatorAPI
 from pvdb import Records
 from server_common.utilities import print_and_log
 from file_format import FILE_SCHEME
-from config import Config
+from config import Constants, Macro
 
 
 def _error_handler(func):
@@ -51,10 +51,10 @@ class LSiCorrelatorVendorInterface:
         self.macros = macros
 
         try:
-            host = macros[Config.ADDRESS_MACRO]
+            host = macros[Macro.ADDRESS.name]
         except KeyError:
             raise RuntimeError("No IP address specified, cannot start")
-        firmware_revision = macros.get(Config.FIRMWARE_REVISION_MACRO, Config.FIRMWARE_REVISION_DEFAULT)
+        firmware_revision = macros.get(Macro.FIRMWARE_REVISION.name, Macro.FIRMWARE_REVISION.value["default"])
 
         if simulated:
             self.mocked_api = MockedCorrelatorAPI()
@@ -117,7 +117,7 @@ class LSiCorrelatorVendorInterface:
         trace_b = np.asarray(self.device.TraceChB)
 
         # Time axis is number of data points collected * scaling factor
-        trace_time = np.arange(len(trace_a))*Config.DELTA_T
+        trace_time = np.arange(len(trace_a))*Constants.DELTA_T
 
         return corr, lags, trace_a, trace_b, trace_time
 
@@ -138,7 +138,7 @@ class LSiCorrelatorVendorInterface:
         self.device.start()
 
         while self.device.MeasurementOn():
-            sleep(Config.SLEEP_BETWEEN_MEASUREMENTS)
+            sleep(Constants.SLEEP_BETWEEN_MEASUREMENTS)
             self.device.update()
 
         if self.device.Correlation is None:
