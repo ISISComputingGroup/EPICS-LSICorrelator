@@ -3,7 +3,6 @@ from __future__ import print_function, unicode_literals, division, absolute_impo
 import sys
 import os
 import traceback
-from io import StringIO
 from typing import Dict, TextIO, Tuple
 
 import six
@@ -11,7 +10,8 @@ import six
 import numpy as np
 
 from time import sleep
-from datetime import datetime
+
+from data_file_interaction import DataArrays, DataFile
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
@@ -19,9 +19,7 @@ sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_serve
 from LSICorrelator import LSICorrelator
 from mocked_correlator_api import MockedCorrelatorAPI
 
-from pvdb import Records
 from server_common.utilities import print_and_log
-from file_format import FILE_SCHEME
 from config import Constants, Macro
 
 
@@ -150,42 +148,17 @@ class LSiCorrelatorVendorInterface:
             self.corr = corr
             self.lags = lags
 
-    def save_data(self, min_time_lag, user_file: TextIO, archive_file: TextIO, metadata: Dict):
+    def save_data(self, min_time_lag: float, user_file: TextIO, archive_file: TextIO, metadata: Dict):
         """
-        Write the correlation function, time lags, traces and metadata to user and archive files.
+        Save the data to file.
 
         Args:
-            min_time_lag (float): The minimum time lag to include
-            user_file (TextIO): The user file to write metadata, correlation, time_lags and the traces to
-            archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
-            metadata (dict): A dictionary of metadata to write to the file
+            min_time_lag (float): The minimum time lag to include.
+            user_file (TextIO): The user file to write data to.
+            archive_file (TextIO): The archive file to write data to.
+            metadata (Dict): Metadata to write to the file with.
         """
         correlation, time_lags, trace_a, trace_b, trace_time = self.get_data_as_arrays(min_time_lag)
-
-        correlation_data = np.vstack((time_lags, correlation)).T
-        raw_channel_data = np.vstack((trace_time, trace_a, trace_b)).T
-
-        # Populate the save file as a string
-        correlation_file = StringIO()
-        np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.6e')
-        correlation_string = correlation_file.getvalue()
-        raw_channel_data_file = StringIO()
-        np.savetxt(raw_channel_data_file, raw_channel_data, delimiter='\t', fmt='%.6f')
-        raw_channel_data_string = raw_channel_data_file.getvalue()
-
-        save_file = FILE_SCHEME.format(
-            datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
-            scattering_angle=metadata[Records.SCATTERING_ANGLE.name],
-            duration=metadata[Records.MEASUREMENTDURATION.name],
-            wavelength=metadata[Records.LASER_WAVELENGTH.name],
-            refractive_index=metadata[Records.SOLVENT_REFRACTIVE_INDEX.name],
-            viscosity=metadata[Records.SOLVENT_VISCOSITY.name],
-            temperature=metadata[Records.SAMPLE_TEMP.name],
-            avg_count_A=np.mean(trace_a),
-            avg_count_B=np.mean(trace_b),
-            correlation_function=correlation_string,
-            count_rate_history=raw_channel_data_string
-        )
-
-        for dat_file in [user_file, archive_file]:
-            dat_file.write(save_file)
+        data_arrays = DataArrays(correlation, time_lags, trace_a, trace_b, trace_time)
+        data_file = DataFile.create_file_data(data_arrays, user_file, archive_file, metadata)
+        data_file.write_to_file()
