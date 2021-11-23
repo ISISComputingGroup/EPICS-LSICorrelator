@@ -357,7 +357,7 @@ class LSiCorrelatorIOC(Driver):
         If simulated save file in user directory instead of usual data directory.
         """
         if self.simulated:
-            full_filename = os.path.join(self.user_filepath, "LSICORR_IOC_test_archive_save.dat")
+            full_filename = os.path.join(self.user_filepath, Constants.SIMULATE_ARCHIVE_DAT_FILE_NAME)
         else:
             timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
             run_number = ChannelAccess.caget(PV.RUNNUMBER.add_prefix(prefix=self.pv_prefix))
@@ -379,7 +379,7 @@ class LSiCorrelatorIOC(Driver):
         """
 
         if self.simulated:
-            filename = "LSICORR_IOC_test_user_save.dat"
+            filename = Constants.SIMULATE_USER_DAT_FILE_NAME
         else:
             run_number = ChannelAccess.caget(PV.RUNNUMBER.add_prefix(prefix=self.pv_prefix))
             print_and_log("run number = {}".format(run_number))

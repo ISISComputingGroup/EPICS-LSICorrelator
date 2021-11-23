@@ -9,6 +9,9 @@ class Constants:
     DELTA_T = 0.0524288 # Magic number, seems to be time between measurements.
     SLEEP_BETWEEN_MEASUREMENTS = 0.5
     DATA_DIR = r"c:\Data"
+    SIMULATE_ARCHIVE_DAT_FILE_NAME = "LSICORR_IOC_test_archive_save.dat"
+    SIMULATE_USER_DAT_FILE_NAME = "LSICORR_IOC_test_user_save.dat"
+
 
 class Macro(Enum):
     
