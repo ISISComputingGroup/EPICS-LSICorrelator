@@ -29,8 +29,12 @@ from server_common.utilities import print_and_log
 from server_common.channel_access import ChannelAccess
 from server_common.helpers import register_ioc_start, get_macro_values
 
-def get_base_pv(reason: str):
-    """ Trims trailing :SP off a PV name """
+def get_base_pv(reason: str) -> str:
+    """ 
+    Trims trailing :SP off a PV name
+    @param reason (str): The PV name to trim
+    @return (str): The trimmed PV name
+    """
     return reason[:-3]
 
 
@@ -40,8 +44,8 @@ THREADPOOL = ThreadPoolExecutor()
 def remove_non_ascii(text_to_check: str) -> str:
     """
     Removes non-ascii and other characters from the supplied text
-    @param text_to_check: The text to check
-    @return: The cleaned text
+    @param text_to_check (str): The text to check
+    @return (str): The cleaned text
     """
     # Remove anything other than alphanumerics and dashes/underscores
     parsed_text = [char for char in text_to_check if char.isalnum() or char in '-_']
@@ -53,11 +57,11 @@ class LSiCorrelatorIOC(Driver):
     A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
     """
 
-    def __init__(self, pv_prefix: str, macros: Dict[str, str]):
+    def __init__(self, pv_prefix: str, macros: Dict[str, str]) -> None:
         """
         A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
-        @param pv_prefix: The prefix to use for all PVs
-        @param macros: A dictionary of macros to use for the IOC
+        @param pv_prefix (str): The prefix to use for all PVs
+        @param macros (Dict[str, str]): A dictionary of macros to use for the IOC
         """
         super().__init__()
 
@@ -71,11 +75,8 @@ class LSiCorrelatorIOC(Driver):
             print("WARNING! Started in simulation mode")
 
         self.driver = LSiCorrelatorVendorInterface(macros, simulated=self.simulated)
-
         self.macros = macros
-
         self.pv_prefix = pv_prefix
-
         self.already_started = False
 
         defaults = {
@@ -124,9 +125,9 @@ class LSiCorrelatorIOC(Driver):
     def update_error_pv_print_and_log(self, error: str, severity: LSiPVSeverity = LSiPVSeverity.INFO, src: str = "LSI") -> None:
         """
         Updates the error PV with the provided error message, then prints and logs the error
-        @param error: The error message to write to the error PV
-        @param severity: The severity of the error
-        @param src: The source of the error
+        @param error (str): The error message to write to the error PV
+        @param severity (LSiPVSeverity): The severity of the error
+        @param src (str): The source of the error
         """
         self.update_pv_and_write_to_device(Records.ERRORMSG.name, error)
         print_and_log(error, severity.value, src)
@@ -134,7 +135,7 @@ class LSiCorrelatorIOC(Driver):
     def set_disconnected_alarms(self, in_alarm: bool):
         """
         Sets disconnected alarms if in_alarm is True
-        @param in_alarm: Whether to set the disconnected alarms or not (True = set, False = clear)
+        @param in_alarm (bool): Whether to set the disconnected alarms or not (True = set, False = clear)
         """
         if in_alarm:
             severity = Severity.INVALID_ALARM
@@ -153,25 +154,23 @@ class LSiCorrelatorIOC(Driver):
         """
         If the supplied reason has a defining record, applies the convert_from_pv transformation to current pv value
         else returns current pv value.
-        @param reason: The name of the PV to get the value of (without the prefix)
-        @return: The converted PV value
+        @param reason (str): The name of the PV to get the value of (without the prefix)
+        @return (Any): The converted PV value
         """
         pv_value = self.read(reason)
-
         try:
             record = Records[reason].value
             sanitised_value = record.convert_from_pv(pv_value)
         except KeyError:
             # reason has no defining record
             sanitised_value = pv_value
-
         return sanitised_value
 
-    def update_param_and_fields(self, reason: str, value: Any):
+    def update_param_and_fields(self, reason: str, value: Any) -> None:
         """
         Updates given param, VAL field, and alarm status/severity in PCASpy driver
-        @param reason: The name of the PV to update
-        @param value: The value to update the PV, pv.VAL field, and alarm status/severity with
+        @param reason (str): The name of the PV to get the value of (without the prefix)
+        @param value (Any): The value to update the PV, pv.VAL field, and alarm status/severity with
         """
         try:
             self.setParam(reason, value)
@@ -182,7 +181,7 @@ class LSiCorrelatorIOC(Driver):
             self.update_error_pv_print_and_log("{}".format(err))
 
     @_error_handler
-    def update_pv_and_write_to_device(self, reason: str, value: Any, update_setpoint: bool = False):
+    def update_pv_and_write_to_device(self, reason: str, value: Any, update_setpoint: bool = False) -> None:
         """
         Helper function to update the value of a PV held in this driver and sets the value on the device.
         @param reason (str): The name of the PV to set
@@ -215,7 +214,7 @@ class LSiCorrelatorIOC(Driver):
         # Update PVs after any write
         self.updatePVs()
 
-    def set_array_pv_value(self, reason: str, value: Any):
+    def set_array_pv_value(self, reason: str, value: Any) -> None:
         """
         Helper function to update the value of an array PV and the array PV fields (NORD)
         @param reason (str): The name of the PV to set
@@ -226,11 +225,11 @@ class LSiCorrelatorIOC(Driver):
         self.setParam("{reason}.NORD".format(reason=reason), len(value))
 
     @_error_handler
-    def write(self, reason: str, value: Any):
+    def write(self, reason: str, value: Any) -> None:
         """
         Handle write to PV
-        @param reason: The name of the PV to set
-        @param value: The new value to set the PV to
+        @param reason (str): The name of the PV to set
+        @param value (Any): The new value to set the PV to
         """
 
         print_and_log("LSiCorrelatorDriver: Processing PV write for reason {} value {}".format(reason, value))
@@ -246,29 +245,27 @@ class LSiCorrelatorIOC(Driver):
             THREADPOOL.submit(self.update_pv_and_write_to_device, reason, value)
 
     @_error_handler
-    def read(self, reason: str):
+    def read(self, reason: str) -> Any:
         """
         Handle read of PV
-        @param reason: The name of the PV to read
-        @return: The value of the PV
+        @param reason (str): The name of the PV to get the value of (without the prefix)
+        @return (Any): The value of the PV
         """
 
         self.updatePVs()  # Update PVs before any read so that they are up to date.
-
         if reason.endswith(":SP"):
             pv_value = self.getParam(get_base_pv(reason))
         else:
             pv_value = self.getParam(reason)
-
         return pv_value
     
-    def wait(self, wait_in_seconds):
+    def wait(self, wait_in_seconds) -> None:
         self.update_pv_and_write_to_device(Records.WAITING.name, True)
         time.sleep(wait_in_seconds)
         self.update_pv_and_write_to_device(Records.WAITING.name, False)
 
     @_error_handler
-    def take_data(self):
+    def take_data(self) -> None:
         """
         Sends settings parameters to the LSi driver and takes data (and saves the data) from the LSi Correlator
         with the given number of repetitions. Sends IOC into alarm if no data is returned
@@ -315,7 +312,6 @@ class LSiCorrelatorIOC(Driver):
         
         self.update_pv_and_write_to_device(Records.TAKING_DATA.name, False)
         self.already_started = False
-
         # Set start PV back to NO, purely for aesthetics (this PV is actually always ready)
         self.update_param_and_fields(Records.START.name, 0)
         self.update_param_and_fields("{pv}:SP".format(pv=Records.START.name), 0)
@@ -323,7 +319,7 @@ class LSiCorrelatorIOC(Driver):
     def get_metadata(self) -> Dict:
         """
         Get the metadata to be saved with the data
-        @return: A dictionary containing meta data to be saved
+        @return (Dict): A dictionary containing meta data to be saved
         """
         metadata = {}
         metadata_records = [
@@ -336,10 +332,9 @@ class LSiCorrelatorIOC(Driver):
         ]
         for record in metadata_records:
             metadata[record.name] = self.get_converted_pv_value(record.name)
-        
         return metadata
 
-    def get_archive_filename(self):
+    def get_archive_filename(self) -> str:
         """
         Returns a filename which the archive data file will be saved with.
 
@@ -353,16 +348,14 @@ class LSiCorrelatorIOC(Driver):
             timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
             run_number = ChannelAccess.caget(PV.RUNNUMBER.add_prefix(prefix=self.pv_prefix))
             instrument = ChannelAccess.caget(PV.INSTNAME.add_prefix(prefix=self.pv_prefix))
-
             filename = "{instrument}{run_number}_DLS_{timestamp}.txt".format(instrument=instrument,
                                                                              run_number=run_number,
                                                                              timestamp=timestamp)
 
             full_filename = os.path.join(Constants.DATA_DIR, filename)
-
         return full_filename
 
-    def get_user_filename(self):
+    def get_user_filename(self) -> str:
         """
         Returns a filename given the current run number and title.
 
@@ -394,9 +387,9 @@ class LSiCorrelatorIOC(Driver):
         return full_filename
 
 
-def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]):
+def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]) -> None:
     """
-    Server the PVs for the remote ioc server
+    Serve the PVs for the remote ioc server forever.
 
     @param ioc_name (str): The name of the IOC to run, including the ioc name (i.e. "LSICORR_01")
     @param pv_prefix (str): The prefix to use for the PVs
@@ -439,7 +432,6 @@ def main():
     )
 
     parser.add_argument("--ioc_name", required=True, type=six.text_type)
-
     parser.add_argument("--pv_prefix", required=True, type=six.text_type,
                         help="The PV prefix of this instrument.")
 
@@ -459,4 +451,7 @@ def main():
 
 
 if __name__ == "__main__":
+    """
+    Run the main function if this script is called directly.
+    """
     main()

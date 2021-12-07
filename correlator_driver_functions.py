@@ -24,6 +24,12 @@ from config import Constants, Macro
 
 
 def _error_handler(func):
+    """
+    A wrapper for the correlator driver functions that catches any errors and 
+    prints them to the log file.
+    @param func: The function to wrap.
+    @return: The wrapped function.
+    """
     @six.wraps(func)
     def _wrapper(*args, **kwargs):
         try:
@@ -36,15 +42,15 @@ def _error_handler(func):
 class LSiCorrelatorVendorInterface:
     """
     An interface to the LSiCorrelator vendor api.
+    The interface is implemented as a wrapper around the vendor driver.
     """
 
-    def __init__(self, macros: Dict[str, str], simulated: bool = False):
+    def __init__(self, macros: Dict[str, str], simulated: bool = False) -> None:
         """
         An interface to the LSiCorrelator vendor api.
-
-        Args:
-            macros: Dictionary of macros for this IOC
-            simulated: If True, a mocked API is used instead of the real vendor driver
+        @param macros (Dict[str, str]): The macros to use when configuring the correlator.
+        @param simulated (bool): Whether to use the simulated correlator or not.
+        If True, a mocked API is used instead of the real vendor driver
         """
         self.macros = macros
 
@@ -68,15 +74,11 @@ class LSiCorrelatorVendorInterface:
     def remove_data_with_time_lags_lower_than_minimum(self, lags: np.ndarray, corr: np.ndarray, min_time_lag: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Remove lags and corresponding corr values which have lags values below the minimum time lag
-        
-        Args:
-            lags (ndarray): The original time lags values to remove values from
-            corr (ndarray): The original correlation function to remove values from
-            min_time_lag (float): The minimum time lag to include
-
-        Returns:
-            lags (ndarray): The correlation function values whose corresponding time lag is greater than or equal to min_time_lag
-            corr (ndarray): Time lags that are greater than min_time_lag
+        @param lags (np.ndarray): The original time lags values to remove values from
+        @param corr (np.ndarray): The original correlation values to remove values from
+        @param min_time_lag (float): The minimum time lag to include
+        @return (Tuple[np.ndarray, np.ndarray]): The correlation function values whose corresponding 
+        time lag is greater than or equal to min_time_lag and Time lags that are greater than min_time_lag
         """
         indices = []
         for count in range(0, len(lags)):
@@ -92,11 +94,9 @@ class LSiCorrelatorVendorInterface:
         """
         Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
         The correlation function and time lags are filtered to finite values only.
+        @param min_time_lag (float): The minimum time lag to include.
 
-        Args:
-            min_time_lag (float): The minimum time lag to include
-
-        Returns:
+        @Returns (Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]):
             Corr (ndarray): The finite values of the correlation function whose corresponding time lag is greater than or equal to min_time_lag
             Lags (ndarray): Time lags where the correlation function is finite that are greater than or equal to min_time_lag
             trace_A (ndarray): Raw photon counts for channel A
@@ -119,19 +119,19 @@ class LSiCorrelatorVendorInterface:
 
         return corr, lags, trace_a, trace_b, trace_time
 
-    def configure(self):
+    def configure(self) -> None:
         """
         Writes the configuration settings to the vendor driver
+        @return: None
         """
         self.device.configure()
 
     @_error_handler
-    def take_data(self, min_time_lag):
+    def take_data(self, min_time_lag) -> None:
         """
         Starts taking data from the LSi Correlator once with the currently configure device settings.
-
-        Args:
-            min_time_lag (float): The minimum time lag to include
+        @param min_time_lag (float): The minimum time lag to include.
+        @return: None
         """
         self.device.start()
 
@@ -148,15 +148,14 @@ class LSiCorrelatorVendorInterface:
             self.corr = corr
             self.lags = lags
 
-    def save_data(self, min_time_lag: float, user_file: TextIO, archive_file: TextIO, metadata: Dict):
+    def save_data(self, min_time_lag: float, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:
         """
         Save the data to file.
-
-        Args:
-            min_time_lag (float): The minimum time lag to include.
-            user_file (TextIO): The user file to write data to.
-            archive_file (TextIO): The archive file to write data to.
-            metadata (Dict): Metadata to write to the file with.
+        @param min_time_lag (float): The minimum time lag to include.
+        @param user_file (TextIO): The file to write the user data to.
+        @param archive_file (TextIO): The file to write the archive data to.
+        @param metadata (Dict): The metadata to write to the file.
+        @return: None
         """
         correlation, time_lags, trace_a, trace_b, trace_time = self.get_data_as_arrays(min_time_lag)
         data_arrays = DataArrays(correlation, time_lags, trace_a, trace_b, trace_time)
