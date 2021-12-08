@@ -4,28 +4,8 @@ import numpy as np
 from datetime import datetime
 from pvdb import Records
 from dataclasses import dataclass
+from config import Schema
 
-
-FILE_SCHEME = """{datetime}
-Pseudo Cross Correlation
-Scattering angle:\t{scattering_angle:.1f}
-Duration (s):\t{duration:d}
-Wavelength (nm):\t{wavelength:.1f}
-Refractive index:\t{refractive_index:.3f}
-Viscosity (mPas):\t{viscosity:.3f}
-Temperature (K):\t{temperature:.1f}
-Laser intensity (mW):\t0.0
-Average Count rate  A (kHz):\t{avg_count_A:.1f}
-Average Count rate  B (kHz):\t{avg_count_B:.1f}
-Intercept:\t1.0000
-Cumulant 1st\t-Inf
-Cumulant 2nd\t-Inf\tNaN
-Cumulant 3rd\t-Inf\tNaN
-
-Lag time (s)         g2-1
-{correlation_function}
-Count Rate History (KHz)  CR CHA / CR CHB
-{count_rate_history}"""
 
 @dataclass
 class DataArrays:
@@ -45,13 +25,28 @@ class DataFile:
     """
 
     @staticmethod
-    def create_file_data(data_arrays: DataArrays, user_file: TextIO, archive_file: TextIO, metadata: Dict):
+    def create_file_data(data_arrays: DataArrays, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> 'DataFile':
+        """
+        Create a data transfer object to store and format data to write to file.
+        @param data_arrays (DataArrays): A data transfer object to store the relevant data ndarrays.
+        @param user_file (TextIO): The user file to write metadata, correlation, time_lags and the traces to
+        @param archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
+        @param metadata (Dict): A dictionary of metadata to write to the file
+        @return (DataFile): A data transfer object to store and format data to write to file.
+        """
         data_file = DataFile(data_arrays, user_file, archive_file, metadata)
         correlation_string, raw_channel_data_string = data_file._format_correlation_and_raw_channel_data()
         data_file._structure_file_data(correlation_string, raw_channel_data_string)
         return data_file
 
     def __init__(self, data_arrays: DataArrays, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:
+        """
+        Initialize the data transfer object.
+        @param data_arrays (DataArrays): A data transfer object to store the relevant data ndarrays.
+        @param user_file (TextIO): The user file to write metadata, correlation, time_lags and the traces to
+        @param archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
+        @param metadata (Dict): A dictionary of metadata to write to the file
+        """
         self.data_arrays: DataArrays = data_arrays
         self.user_file: TextIO = user_file
         self.archive_file: TextIO = archive_file
@@ -59,6 +54,10 @@ class DataFile:
         self.save_file = None
 
     def _format_correlation_and_raw_channel_data(self) -> Tuple[StringIO, StringIO]:
+        """
+        A private method to format the correlation function and raw channel data to write to file.
+        @return (Tuple): A tuple (str, str) of the correlation function and raw channel data to write to file.
+        """
         correlation_data = np.vstack((self.data_arrays.time_lags, self.data_arrays.correlation)).T
         raw_channel_data = np.vstack((self.data_arrays.trace_time, self.data_arrays.trace_a, self.data_arrays.trace_b)).T
         correlation_file = StringIO()
@@ -69,18 +68,15 @@ class DataFile:
         raw_channel_data_string = raw_channel_data_file.getvalue()
         return correlation_string, raw_channel_data_string
 
-    def _structure_file_data(self, correlation_string, raw_channel_data_string):
+    def _structure_file_data(self, correlation_string, raw_channel_data_string) -> None:
         """
         Write the correlation function, time lags, traces and metadata to user and archive files.
-
-        Args:
-            min_time_lag (float): The minimum time lag to include
-            user_file (TextIO): The user file to write metadata, correlation, time_lags and the traces to
-            archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
-            metadata (dict): A dictionary of metadata to write to the file
+        @param correlation_string (StringIO): The correlation function to write to file.
+        @param raw_channel_data_string (StringIO): The raw channel data to write to file.
+        @return (None): None
         """
         correlation_string, raw_channel_data_string = self._format_correlation_and_raw_channel_data()
-        self.save_file = FILE_SCHEME.format(
+        self.save_file = Schema.FILE_SCHEME.format(
             datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
             scattering_angle=self.metadata[Records.SCATTERING_ANGLE.name],
             duration=self.metadata[Records.MEASUREMENTDURATION.name],
@@ -94,6 +90,10 @@ class DataFile:
             count_rate_history=raw_channel_data_string
         )
 
-    def write_to_file(self):
+    def write_to_file(self) -> None:
+        """
+        Write the correlation function, time lags, traces and metadata to user and archive files.
+        @return (None): None
+        """
         for dat_file in [self.user_file, self.archive_file]:
             dat_file.write(self.save_file)

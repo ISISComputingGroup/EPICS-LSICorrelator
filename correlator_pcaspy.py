@@ -297,14 +297,7 @@ class LSiCorrelatorIOC(Driver):
         @return (Dict): A dictionary containing meta data to be saved
         """
         metadata = {}
-        metadata_records = [
-            Records.SCATTERING_ANGLE,
-            Records.MEASUREMENTDURATION,
-            Records.LASER_WAVELENGTH,
-            Records.SOLVENT_REFRACTIVE_INDEX,
-            Records.SOLVENT_VISCOSITY,
-            Records.SAMPLE_TEMP
-        ]
+        metadata_records = Defaults.metadata_records
         for record in metadata_records:
             metadata[record.name] = self.get_converted_pv_value(record.name)
         return metadata
