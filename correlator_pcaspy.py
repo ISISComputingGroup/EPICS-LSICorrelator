@@ -16,12 +16,10 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
-sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
+sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master")) 
 
-from LSI import LSI_Param
 from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
-from config import Constants, PV, LSiPVSeverity, Macro
-
+from config import Constants, PV, LSiPVSeverity, Macro, Defaults
 
 from pvdb import STATIC_PV_DATABASE, Records
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
@@ -79,32 +77,9 @@ class LSiCorrelatorIOC(Driver):
         self.pv_prefix = pv_prefix
         self.already_started = False
 
-        defaults = {
-            Records.CORRELATIONTYPE.value: LSI_Param.CorrelationType.AUTO,
-            Records.NORMALIZATION.value: LSI_Param.Normalization.COMPENSATED,
-            Records.MEASUREMENTDURATION.value: 10,
-            Records.SWAPCHANNELS.value: LSI_Param.SwapChannels.ChA_ChB,
-            Records.SAMPLINGTIMEMULTIT.value: LSI_Param.SamplingTimeMultiT.ns200,
-            Records.TRANSFERRATE.value: LSI_Param.TransferRate.ms100,
-            Records.OVERLOADLIMIT.value: 20,
-            Records.OVERLOADINTERVAL.value: 400,
-            Records.REPETITIONS.value: 2,
-            Records.CURRENT_REPETITION.value: 0,
-            Records.CONNECTED.value: self.driver.is_connected,
-            Records.RUNNING.value: False,
-            Records.WAITING.value: False,
-            Records.WAIT.value: 0,
-            Records.WAIT_AT_START.value: False,
-            Records.SCATTERING_ANGLE.value: 110,
-            Records.SAMPLE_TEMP.value: 298,
-            Records.SOLVENT_VISCOSITY.value: 1,
-            Records.SOLVENT_REFRACTIVE_INDEX.value: 1.33,
-            Records.LASER_WAVELENGTH.value: 642,
-            Records.OUTPUTFILE.value: "No data taken yet",
-            Records.SIM.value: 0,
-            Records.DISABLE.value: 0,
-            Records.MIN_TIME_LAG.value: 200
-        }
+        # Set up the PV database
+        defaults = Defaults.defaults
+        defaults[Records.CONNECTED.value] = self.driver.is_connected
 
         self.alarm_status = Alarm.NO_ALARM
         self.alarm_severity = Severity.NO_ALARM
