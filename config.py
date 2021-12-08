@@ -106,3 +106,4 @@ class Schema:
     {correlation_function}
     Count Rate History (KHz)  CR CHA / CR CHB
     {count_rate_history}"""
+    
