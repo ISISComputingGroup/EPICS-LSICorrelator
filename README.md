@@ -1,7 +1,7 @@
 # EPICS-LSICorrelator
 EPICS PCASpy IOC for the LSi Correlator
 
-Please see the below links to relevant recourses:
+Please see relevant recourses listed below :
 
 - [Dev Manual](https://github.com/ISISComputingGroup/ibex_developers_manual/wiki/LSi-Correlator)
 - [Support Repository](https://github.com/ISISComputingGroup/EPICS-LSICorrelator)
@@ -10,8 +10,7 @@ Please see the below links to relevant recourses:
 - [LSI Correlator](https://lsinstruments.ch/en/products/lsi-correlator)
 - Shared Drive documents: `\\isis\shares\ISIS_Experiment_Controls\Manuals\LSI Correlator`
 - LSI Correlator Manual: `\\isis\shares\ISIS_Experiment_Controls\Manuals\LSI Correlator\LSI.Correlator.Manual_v3.2.1`
-
-
+- UML Class Diagram: `master\design\LSICorrelator.drawio.png`
 
 ### Testing
 To test, please run `master\tests.py` using the command `python tests.py` from an epics environment (`C:\Instrument\Apps\EPICS\config_env.bat`).
