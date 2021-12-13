@@ -5,7 +5,10 @@ on: [push]
 jobs:
   build:
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+    env:
+      EPICS_BASE: <epics base path>
+      EPICS_HOST_ARCH: <epics host arch>
 
     steps:
     - uses: actions/checkout@v2
