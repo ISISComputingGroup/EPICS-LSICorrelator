@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
-sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master")) 
+sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
 from config import Constants, PV, LSiPVSeverity, Macro, Defaults
@@ -28,7 +28,7 @@ from server_common.channel_access import ChannelAccess  # pylint: disable=import
 from server_common.helpers import register_ioc_start, get_macro_values  # pylint: disable=import-error
 
 def get_base_pv(reason: str) -> str:
-    """ 
+    """
     Trims trailing :SP off a PV name
     @param reason (str): The PV name to trim
     @return (str): The trimmed PV name
@@ -110,7 +110,7 @@ class LSiCorrelatorIOC(Driver):
     def set_disconnected_alarms(self, in_alarm: bool):
         """
         Sets disconnected alarms if in_alarm is True
-        @param in_alarm (bool): Whether to set the disconnected alarms or 
+        @param in_alarm (bool): Whether to set the disconnected alarms or
         not (True = set, False = clear)
         """
         if in_alarm:
@@ -128,7 +128,7 @@ class LSiCorrelatorIOC(Driver):
 
     def get_converted_pv_value(self, reason: str) -> Any:
         """
-        If the supplied reason has a defining record, applies the convert_from_pv 
+        If the supplied reason has a defining record, applies the convert_from_pv
         transformation to current pv value else returns current pv value.
         @param reason (str): The name of the PV to get the value of (without the prefix)
         @return (Any): The converted PV value
@@ -221,14 +221,14 @@ class LSiCorrelatorIOC(Driver):
         if reason.endswith(":SP"):
             # Update both SP and non-SP fields
             THREADPOOL.submit(
-                self.update_pv_and_write_to_device, 
-                get_base_pv(reason), 
-                value, 
+                self.update_pv_and_write_to_device,
+                get_base_pv(reason),
+                value,
                 update_setpoint=True)
         else:
             THREADPOOL.submit(
-                self.update_pv_and_write_to_device, 
-                reason, 
+                self.update_pv_and_write_to_device,
+                reason,
                 value)
 
     @_error_handler
@@ -245,7 +245,7 @@ class LSiCorrelatorIOC(Driver):
         else:
             pv_value = self.getParam(reason)
         return pv_value
-    
+
     def wait(self, wait_in_seconds) -> None:
         self.update_pv_and_write_to_device(Records.WAITING.name, True)
         time.sleep(wait_in_seconds)
@@ -254,8 +254,8 @@ class LSiCorrelatorIOC(Driver):
     @_error_handler
     def take_data(self) -> None:
         """
-        Sends settings parameters to the LSi driver and takes data (and saves the data) 
-        from the LSi Correlator with the given number of repetitions. 
+        Sends settings parameters to the LSi driver and takes data (and saves the data)
+        from the LSi Correlator with the given number of repetitions.
         Sends IOC into alarm if no data is returned (as the correlator may be disconnected).
         """
         try:
@@ -297,7 +297,7 @@ class LSiCorrelatorIOC(Driver):
                     "LSiCorrelatorDriver: No data read, device could be disconnected",
                     LSiPVSeverity.INVALID)
                 self.set_disconnected_alarms(True)
-        
+
         self.update_pv_and_write_to_device(Records.TAKING_DATA.name, False)
         self.already_started = False
         # Set start PV back to NO, purely for aesthetics (this PV is actually always ready)
@@ -319,14 +319,14 @@ class LSiCorrelatorIOC(Driver):
         """
         Returns a filename which the archive data file will be saved with.
 
-        If device is simulated do not attempt to get instrument name or run number 
+        If device is simulated do not attempt to get instrument name or run number
         from channel access.
         If simulated save file in user directory instead of usual data directory.
         @return (str): Filename to save archive data to
         """
         if self.simulated:
             full_filename = os.path.join(
-                self.user_filepath, 
+                self.user_filepath,
                 Constants.SIMULATE_ARCHIVE_DAT_FILE_NAME)
         else:
             timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
@@ -361,8 +361,8 @@ class LSiCorrelatorIOC(Driver):
                 experiment_name = ChannelAccess.caget(PV.TITLE.add_prefix(prefix=self.pv_prefix))
 
             filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
-                run_number=run_number, 
-                experiment_name=remove_non_ascii(experiment_name), 
+                run_number=run_number,
+                experiment_name=remove_non_ascii(experiment_name),
                 timestamp=timestamp)
 
         # Update last used filename PV
@@ -378,18 +378,23 @@ def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]) -> None
 
     @param ioc_name (str): The name of the IOC to run, including the ioc name (i.e. "LSICORR_01")
     @param pv_prefix (str): The prefix to use for the PVs
-    @param macros (Dict[str, str]): The macros to use for the PVs - A dictionary containing IOC macros
+    @param macros (Dict[str, str]): The macros to use for the PVs - A dictionary
+    containing IOC macros
     @return: None
     """
-    ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(pv_prefix=pv_prefix, ioc_name=ioc_name)
+    ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(
+        pv_prefix=pv_prefix, ioc_name=ioc_name)
     print_and_log(ioc_name_with_pv_prefix)
     server = SimpleServer()
 
     server.createPV(ioc_name_with_pv_prefix, STATIC_PV_DATABASE)
 
     # Run heartbeat IOC, this is done with a different prefix
-    server.createPV(prefix="{pv_prefix}CS:IOC:{ioc_name}:DEVIOS:".format(pv_prefix=pv_prefix, ioc_name=ioc_name),
-                    pvdb={"HEARTBEAT": {"type": "int", "value": 0}})
+    server.createPV(
+        prefix="{pv_prefix}CS:IOC:{ioc_name}:DEVIOS:".format(
+            pv_prefix=pv_prefix,
+            ioc_name=ioc_name),
+        pvdb={"HEARTBEAT": {"type": "int", "value": 0}})
 
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
