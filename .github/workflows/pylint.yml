@@ -18,7 +18,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pylint
     - name: Analysing the code with pylint
-      run: pylint --rcfile=.pylintrc `ls -R|grep .py$|xargs`
+      run: pylint --rcfile=.pylintrc `ls -R|grep .py$|xargs` | tee pylint.txt
     - name: Upload pylint.txt as artifact
       uses: actions/upload-artifact@v2
       with:
