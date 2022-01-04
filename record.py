@@ -2,9 +2,34 @@ from typing import Dict, Optional, Callable
 from enum import Enum
 from pcaspy.alarm import AlarmStrings, SeverityStrings  # pylint: disable=import-error
 
-PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"], 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
-INT_AS_FLOAT_PV = {'type': 'float', 'prec': 0, 'value': 0.0, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
-CHAR_PV_FIELDS = {'type': 'char', 'count': 400, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
+PARAM_FIELDS_BINARY = {
+    'type': 'enum',
+    'enums': ["NO", "YES"],
+    'info_field': {
+        'archive': 'VAL',
+        'INTEREST': 'HIGH'
+    }
+}
+
+INT_AS_FLOAT_PV = {
+    'type': 'float',
+    'prec': 0,
+    'value': 0.0,
+    'info_field': {
+        'archive': 'VAL',
+        'INTEREST': 'HIGH'
+    }
+}
+
+CHAR_PV_FIELDS = {
+    'type': 'char',
+    'count': 400,
+    'info_field': {
+        'archive': 'VAL',
+        'INTEREST': 'HIGH'
+    }
+}
+
 FLOAT_ARRAY = {'type': 'float', 'count': 400}
 # Truncate as enum can only contain 16 states
 ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStrings[:16]}
@@ -52,11 +77,12 @@ class Record(object):
         name: The name of the base PV
         pv_definition: Dict containing the fields specified in the PCASpy database field definition
         has_setpoint: If True, this record will also have a setpoint PV (ending in :SP).
-        convert_from_pv: Callable which converts the supplied value (e.g. an enum value) to a value more easily handled.
-                         Defaults to do_nothing (no-op)
-        convert_to_pv: Callable which converts an internal/easily interpreted value to one that can be written to a pv.
-                       Defaults to do_nothing (no-op)
-        device_setter: Function which is called when the PV is written do. Defaults to do_nothing (no-op)
+        convert_from_pv: Callable which converts the supplied value (e.g. an enum value)
+        to a value more easily handled. Defaults to do_nothing (no-op)
+        convert_to_pv: Callable which converts an internal/easily interpreted value to one that
+        can be written to a pv. Defaults to do_nothing (no-op)
+        device_setter: Function which is called when the PV is written do.
+        Defaults to do_nothing (no-op)
     """
 
     def __init__(self, name: str, pv_definition: Dict,
@@ -90,15 +116,27 @@ class Record(object):
         return database
 
     def add_standard_fields(self) -> Dict:
-        """ Uses the optionals present in self.pv_definition to add typical fields required for this record """
+        """
+        Uses the optionals present in self.pv_definition to add typical fields
+        required for this record
+        """
         new_fields = {}
 
         if 'count' in self.pv_definition:
-            new_fields.update({"{pv}.NORD".format(pv=self.name): {'type': 'int', 'value': 0}})
-            new_fields.update({"{pv}.NELM".format(pv=self.name): {'type': 'int', 'value': self.pv_definition['count']}})
+            new_fields.update({"{pv}.NORD".format(pv=self.name): {
+                'type': 'int',
+                'value': 0}
+                })
+            new_fields.update({"{pv}.NELM".format(pv=self.name): {
+                'type': 'int',
+                'value': self.pv_definition['count']}
+                })
 
         if 'unit' in self.pv_definition:
-            new_fields.update({"{pv}.EGU".format(pv=self.name): {'type': 'string', 'value': self.pv_definition['unit']}})
+            new_fields.update({"{pv}.EGU".format(pv=self.name): {
+                'type': 'string',
+                'value': self.pv_definition['unit']}
+                })
 
         return new_fields
 
