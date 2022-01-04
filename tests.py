@@ -8,6 +8,8 @@ from pvdb import Records
 from test_utils import test_data
 from unittest.mock import patch
 
+# pylint: disable=line-too-long
+
 macros = {
     "SIMULATE": "1",
     "ADDR": "127.0.0.1",
