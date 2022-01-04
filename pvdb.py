@@ -5,8 +5,8 @@ from functools import partial
 from enum import Enum
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "Support", "lsicorr_vendor", "master"))
-from LSICorrelator import LSICorrelator
-from LSI import LSI_Param
+from LSICorrelator import LSICorrelator  # pylint: disable=import-error
+from LSI import LSI_Param  # pylint: disable=import-error
 
 from record import (Record, populate_enum_pv, float_pv_with_unit, do_nothing,
                     PARAM_FIELDS_BINARY, INT_AS_FLOAT_PV, CHAR_PV_FIELDS, FLOAT_ARRAY)

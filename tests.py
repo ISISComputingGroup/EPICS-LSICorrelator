@@ -1,5 +1,5 @@
 import unittest
-import numpy as np
+import numpy as np  # pylint: disable=import-error
 from tempfile import NamedTemporaryFile
 
 from correlator_driver_functions import LSiCorrelatorVendorInterface

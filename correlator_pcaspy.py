@@ -7,10 +7,10 @@ import traceback
 from typing import Dict, Any
 import time
 
-import six
+import six  # pylint: disable=import-error
 
-from pcaspy import SimpleServer, Driver
-from pcaspy.alarm import Alarm, Severity
+from pcaspy import SimpleServer, Driver  # pylint: disable=import-error
+from pcaspy.alarm import Alarm, Severity  # pylint: disable=import-error
 from concurrent.futures import ThreadPoolExecutor
 
 from datetime import datetime
@@ -22,10 +22,10 @@ from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_han
 from config import Constants, PV, LSiPVSeverity, Macro, Defaults
 
 from pvdb import STATIC_PV_DATABASE, Records
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from server_common.utilities import print_and_log
-from server_common.channel_access import ChannelAccess
-from server_common.helpers import register_ioc_start, get_macro_values
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER  # pylint: disable=import-error
+from server_common.utilities import print_and_log  # pylint: disable=import-error
+from server_common.channel_access import ChannelAccess  # pylint: disable=import-error
+from server_common.helpers import register_ioc_start, get_macro_values  # pylint: disable=import-error
 
 def get_base_pv(reason: str) -> str:
     """ 

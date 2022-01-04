@@ -1,6 +1,6 @@
 from typing import Dict, Optional, Callable
 from enum import Enum
-from pcaspy.alarm import AlarmStrings, SeverityStrings
+from pcaspy.alarm import AlarmStrings, SeverityStrings  # pylint: disable=import-error
 
 PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"], 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
 INT_AS_FLOAT_PV = {'type': 'float', 'prec': 0, 'value': 0.0, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}

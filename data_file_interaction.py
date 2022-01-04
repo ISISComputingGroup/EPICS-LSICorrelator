@@ -1,6 +1,6 @@
 from typing import Dict, TextIO, Tuple
 from io import StringIO
-import numpy as np
+import numpy as np  # pylint: disable=import-error
 from datetime import datetime
 from pvdb import Records
 from dataclasses import dataclass

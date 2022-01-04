@@ -5,9 +5,9 @@ import os
 import traceback
 from typing import Dict, TextIO, Tuple
 
-import six
+import six  # pylint: disable=import-error
 
-import numpy as np
+import numpy as np  # pylint: disable=import-error
 
 from time import sleep
 
@@ -16,10 +16,10 @@ from data_file_interaction import DataArrays, DataFile
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
-from LSICorrelator import LSICorrelator
+from LSICorrelator import LSICorrelator  # pylint: disable=import-error
 from mocked_correlator_api import MockedCorrelatorAPI
 
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log  # pylint: disable=import-error
 from config import Constants, Macro
 
 

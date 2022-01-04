@@ -1,5 +1,5 @@
 from enum import Enum
-from LSI import LSI_Param
+from LSI import LSI_Param  # pylint: disable=import-error
 from pvdb import STATIC_PV_DATABASE, Records
 
 

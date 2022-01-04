@@ -1,7 +1,7 @@
-from mock import MagicMock
+from mock import MagicMock  # pylint: disable=import-error
 from pvdb import Records
 
-import numpy as np
+import numpy as np  # pylint: disable=import-error
 from time import time
 
 elements_in_float_array = Records.CORRELATION_FUNCTION.value.database_entries["CORRELATION_FUNCTION"]["count"]
