@@ -43,16 +43,24 @@ class Records(Enum):
 
     CORRELATIONTYPE = Record("CORRELATIONTYPE",
                              populate_enum_pv(LSI_Param.CorrelationType),
-                             convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.CorrelationType),
-                             convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.CorrelationType),
+                             convert_to_pv=partial(
+                                 convert_lsi_enum_to_pv_value,
+                                 LSI_Param.CorrelationType),
+                             convert_from_pv=partial(
+                                 convert_pv_enum_to_lsi_enum, 
+                                 LSI_Param.CorrelationType),
                              device_setter=LSICorrelator.setCorrelationType,
                              has_setpoint=True
                              )
 
     NORMALIZATION = Record("NORMALIZATION",
                            populate_enum_pv(LSI_Param.Normalization),
-                           convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.Normalization),
-                           convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.Normalization),
+                           convert_from_pv=partial(
+                               convert_pv_enum_to_lsi_enum,
+                               LSI_Param.Normalization),
+                           convert_to_pv=partial(
+                               convert_lsi_enum_to_pv_value,
+                               LSI_Param.Normalization),
                            device_setter=LSICorrelator.setNormalization,
                            has_setpoint=True
                            )
@@ -66,24 +74,36 @@ class Records(Enum):
 
     SWAPCHANNELS = Record("SWAPCHANNELS",
                           populate_enum_pv(LSI_Param.SwapChannels),
-                          convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.SwapChannels),
-                          convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.SwapChannels),
+                          convert_from_pv=partial(
+                              convert_pv_enum_to_lsi_enum,
+                              LSI_Param.SwapChannels),
+                          convert_to_pv=partial(
+                              convert_lsi_enum_to_pv_value,
+                              LSI_Param.SwapChannels),
                           device_setter=LSICorrelator.setSwapChannels,
                           has_setpoint=True
                           )
 
     SAMPLINGTIMEMULTIT = Record("SAMPLINGTIMEMULTIT",
                                 populate_enum_pv(LSI_Param.SamplingTimeMultiT),
-                                convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.SamplingTimeMultiT),
-                                convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.SamplingTimeMultiT),
+                                convert_from_pv=partial(
+                                    convert_pv_enum_to_lsi_enum,
+                                    LSI_Param.SamplingTimeMultiT),
+                                convert_to_pv=partial(
+                                    convert_lsi_enum_to_pv_value,
+                                    LSI_Param.SamplingTimeMultiT),
                                 device_setter=LSICorrelator.setSamplingTimeMultiT,
                                 has_setpoint=True
                                 )
 
     TRANSFERRATE = Record("TRANSFERRATE",
                           populate_enum_pv(LSI_Param.TransferRate),
-                          convert_from_pv=partial(convert_pv_enum_to_lsi_enum, LSI_Param.TransferRate),
-                          convert_to_pv=partial(convert_lsi_enum_to_pv_value, LSI_Param.TransferRate),
+                          convert_from_pv=partial(
+                              convert_pv_enum_to_lsi_enum,
+                              LSI_Param.TransferRate),
+                          convert_to_pv=partial(
+                              convert_lsi_enum_to_pv_value,
+                              LSI_Param.TransferRate),
                           device_setter=LSICorrelator.setTransferRate,
                           has_setpoint=True
                           )
@@ -203,7 +223,7 @@ class Records(Enum):
                      
     WAIT = Record("WAIT",float_pv_with_unit('s'), has_setpoint = True)
 
-    MIN_TIME_LAG =Record('MIN_TIME_LAG',float_pv_with_unit('ns'), has_setpoint= True )
+    MIN_TIME_LAG =Record('MIN_TIME_LAG',float_pv_with_unit('ns'), has_setpoint= True)
 
 
 
