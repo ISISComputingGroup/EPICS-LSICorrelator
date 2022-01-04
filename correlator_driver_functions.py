@@ -58,7 +58,9 @@ class LSiCorrelatorVendorInterface:
             host = macros[Macro.ADDRESS.name]
         except KeyError:
             raise RuntimeError("No IP address specified, cannot start")
-        firmware_revision = macros.get(Macro.FIRMWARE_REVISION.name, Macro.FIRMWARE_REVISION.value["default"])
+        firmware_revision = macros.get(
+            Macro.FIRMWARE_REVISION.name, 
+            Macro.FIRMWARE_REVISION.value["default"])
 
         if simulated:
             self.mocked_api = MockedCorrelatorAPI()
@@ -71,14 +73,15 @@ class LSiCorrelatorVendorInterface:
         self.lags = None
         self.has_data = False
 
-    def remove_data_with_time_lags_lower_than_minimum(self, lags: np.ndarray, corr: np.ndarray, min_time_lag: float) -> Tuple[np.ndarray, np.ndarray]:
+    def remove_data_with_time_lags_lower_than_minimum(self, lags: np.ndarray, corr: np.ndarray, min_time_lag: float) -> Tuple[np.ndarray, np.ndarray]:  # pylint: disable=line-too-long
         """
         Remove lags and corresponding corr values which have lags values below the minimum time lag
         @param lags (np.ndarray): The original time lags values to remove values from
         @param corr (np.ndarray): The original correlation values to remove values from
         @param min_time_lag (float): The minimum time lag to include
-        @return (Tuple[np.ndarray, np.ndarray]): The correlation function values whose corresponding 
-        time lag is greater than or equal to min_time_lag and Time lags that are greater than min_time_lag
+        @return (Tuple[np.ndarray, np.ndarray]): The correlation function value whose corresponding
+        time lag is greater than or equal to min_time_lag and Time lags that are greater 
+        than min_time_lag
         """
         indices = []
         for count in range(0, len(lags)):
@@ -90,15 +93,17 @@ class LSiCorrelatorVendorInterface:
 
         return lags, corr
 
-    def get_data_as_arrays(self, min_time_lag) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def get_data_as_arrays(self, min_time_lag) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:  # pylint: disable=line-too-long
         """
         Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
         The correlation function and time lags are filtered to finite values only.
         @param min_time_lag (float): The minimum time lag to include.
 
         @Returns (Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]):
-            Corr (ndarray): The finite values of the correlation function whose corresponding time lag is greater than or equal to min_time_lag
-            Lags (ndarray): Time lags where the correlation function is finite that are greater than or equal to min_time_lag
+            Corr (ndarray): The finite values of the correlation function whose time lag is 
+            greater or equal to min_time_lag
+            Lags (ndarray): Time lags where the correlation function is finite that are 
+            greater than or equal to min_time_lag
             trace_A (ndarray): Raw photon counts for channel A
             trace_B (ndarray): Raw photon counts for channel B
             trace_time (ndarray): Time trace constructed from length of raw data
@@ -129,7 +134,8 @@ class LSiCorrelatorVendorInterface:
     @_error_handler
     def take_data(self, min_time_lag) -> None:
         """
-        Starts taking data from the LSi Correlator once with the currently configure device settings.
+        Starts taking data from the LSi Correlator once with the currently 
+        configured device settings.
         @param min_time_lag (float): The minimum time lag to include.
         @return: None
         """
@@ -148,7 +154,7 @@ class LSiCorrelatorVendorInterface:
             self.corr = corr
             self.lags = lags
 
-    def save_data(self, min_time_lag: float, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:
+    def save_data(self, min_time_lag: float, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:  # pylint: disable=line-too-long
         """
         Save the data to file.
         @param min_time_lag (float): The minimum time lag to include.
