@@ -126,7 +126,7 @@ class LSICorrelatorTests(unittest.TestCase):
             self.driver.save_data(0, user_file, archive_file, metadata)
 
             # Read test_data.dat
-            with open(test_data.test_data_file, mode="r") as test_data_file:
+            with open(test_data.test_data_file, mode="r", encoding="utf-8") as test_data_file:
 
                 test_actual_data = test_data_file.read()
 
