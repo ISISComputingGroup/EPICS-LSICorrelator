@@ -9,7 +9,7 @@ from enum import Enum
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "Support", "lsicorr_vendor", "master"))
 
-from LSICorrelator import LSICorrelator
+from LSICorrelator import LSICorrelator  # pylint: disable=import-error, wrong-import-position
 from LSI import LSI_Param  # pylint: disable=import-error, wrong-import-position
 
 # pylint: disable=wrong-import-position, unused-import
