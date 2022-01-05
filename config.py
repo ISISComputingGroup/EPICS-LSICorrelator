@@ -28,7 +28,7 @@ class Macro(Enum):
     FILEPATH = {"macro": "FILEPATH"}
     FIRMWARE_REVISION = {"macro": "FIRMWARE_REVISION", "default": "4.0.0.3"}
 
-    # pylint: disable=function-redefined
+    # pylint: disable=function-redefined, invalid-overridden-method
     @property
     def name(self):
         return self.value["macro"]
