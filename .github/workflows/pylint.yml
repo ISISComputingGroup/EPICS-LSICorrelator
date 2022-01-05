@@ -18,4 +18,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install pylint
     - name: Analysing the code with pylint
-      run: pylint --rcfile=.pylintrc $(find . -name "*.py" | xargs)
+      run: pylint --rcfile=.pylintrc $(find . -name "*.py" | xargs) > pylint.txt
+    - name: Upload pylint result
+      uses: actions/upload-artifact@v2
+      with:
+        name: pylint report
+        path: pylint.txt
