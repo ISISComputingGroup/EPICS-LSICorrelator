@@ -1,3 +1,6 @@
+"""
+Contains the PV definitions for the LSI_Param Enum
+"""
 from __future__ import print_function, unicode_literals, division, absolute_import
 import sys
 import os
@@ -5,9 +8,11 @@ from functools import partial
 from enum import Enum
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "Support", "lsicorr_vendor", "master"))
-from LSICorrelator import LSICorrelator  # pylint: disable=import-error
-from LSI import LSI_Param  # pylint: disable=import-error
 
+from LSICorrelator import LSICorrelator  # pylint: disable=import-error, wrong-import-position
+from LSI import LSI_Param  # pylint: disable=import-error, wrong-import-position
+
+# pylint: disable=wrong-import-position, unused-import
 from record import (Record, populate_enum_pv, float_pv_with_unit, do_nothing,
                     PARAM_FIELDS_BINARY, INT_AS_FLOAT_PV, CHAR_PV_FIELDS, FLOAT_ARRAY)
 
@@ -20,7 +25,14 @@ def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
         enum_class (Enum): The LSI_Param Enum containing the device parameters
         pv_value (int): The enumerated value from the PV
     """
-    return [enum for enum in enum_class][pv_value]
+    # [member for member in enum_class]
+    enum_as_list = []
+
+    for member in enum_class:
+        enum_as_list.append(member)
+
+    return enum_as_list[pv_value]
+
 
 
 def convert_lsi_enum_to_pv_value(enum_class, current_state):
@@ -32,13 +44,22 @@ def convert_lsi_enum_to_pv_value(enum_class, current_state):
         current_state: The Enum member to be looked up and written to the PV
     """
     state_name = enum_class(current_state)
-    enum_as_list = [member for member in enum_class]
+    enum_as_list = []
+    for member in enum_class:
+        enum_as_list.append(member)
     return enum_as_list.index(state_name)
 
 
 class Records(Enum):
+    """
+    Enum containing the PV names for the LSI_Param Enum
+    """
     @staticmethod
     def keys():
+        """
+        Returns the keys of the enum
+        @return (list): The keys of the enum
+        """
         return [member.name for member in Records]
 
     CORRELATIONTYPE = Record("CORRELATIONTYPE",
@@ -47,7 +68,7 @@ class Records(Enum):
                                  convert_lsi_enum_to_pv_value,
                                  LSI_Param.CorrelationType),
                              convert_from_pv=partial(
-                                 convert_pv_enum_to_lsi_enum, 
+                                 convert_pv_enum_to_lsi_enum,
                                  LSI_Param.CorrelationType),
                              device_setter=LSICorrelator.setCorrelationType,
                              has_setpoint=True
@@ -166,7 +187,7 @@ class Records(Enum):
                      PARAM_FIELDS_BINARY,
                      convert_from_pv=bool
                      )
-    
+
     TAKING_DATA = Record("TAKING_DATA",
                      PARAM_FIELDS_BINARY,
                      convert_from_pv=bool
@@ -220,7 +241,7 @@ class Records(Enum):
                      {'type': 'enum', 'enums': ["NO", "YES"]},
                      convert_from_pv=bool
                      )
-                     
+
     WAIT = Record("WAIT",float_pv_with_unit('s'), has_setpoint = True)
 
     MIN_TIME_LAG =Record('MIN_TIME_LAG',float_pv_with_unit('ns'), has_setpoint= True)
