@@ -157,8 +157,8 @@ class Record:
 
         new_fields = {}
 
-        new_fields.update({"{base_pv}.VAL".format(base_pv=base_pv): self.pv_definition})
-        new_fields.update({"{base_pv}.SEVR".format(base_pv=base_pv): ALARM_SEVR_PV_FIELDS})
-        new_fields.update({"{base_pv}.STAT".format(base_pv=base_pv): ALARM_STAT_PV_FIELDS})
+        new_fields.update({f"{base_pv}.VAL": self.pv_definition})
+        new_fields.update({f"{base_pv}.SEVR": ALARM_SEVR_PV_FIELDS})
+        new_fields.update({f"{base_pv}.STAT": ALARM_STAT_PV_FIELDS})
 
         return new_fields
