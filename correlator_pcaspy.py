@@ -76,7 +76,7 @@ class LSiCorrelatorIOC(Driver):
         try:
             self.user_filepath = macros[Macro.FILEPATH.name]
         except KeyError as key_error:
-            raise RuntimeError("No file path specified to save data to: {}".format(
+            raise RuntimeError(f"No file path specified to save data to: {key_error}".format(
                 key_error)) from key_error
 
         self.simulated = macros[Macro.SIMULATE.name] == "1" # type: bool
