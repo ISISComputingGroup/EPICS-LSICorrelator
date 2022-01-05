@@ -1,4 +1,14 @@
+"""
+Correlator pcaspy and IOC Elements of the LSiCorrelator IOC
+"""
+
+
 from __future__ import print_function, unicode_literals, division, absolute_import
+
+
+from datetime import datetime
+
+
 
 import argparse
 import sys
@@ -7,25 +17,25 @@ import traceback
 from typing import Dict, Any
 import time
 
-import six  # pylint: disable=import-error
+from concurrent.futures import ThreadPoolExecutor
 
 from pcaspy import SimpleServer, Driver  # pylint: disable=import-error
 from pcaspy.alarm import Alarm, Severity  # pylint: disable=import-error
-from concurrent.futures import ThreadPoolExecutor
 
-from datetime import datetime
-
-sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
-sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
-
-from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
-from config import Constants, PV, LSiPVSeverity, Macro, Defaults
-
-from pvdb import STATIC_PV_DATABASE, Records
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER  # pylint: disable=import-error
 from server_common.utilities import print_and_log  # pylint: disable=import-error
 from server_common.channel_access import ChannelAccess  # pylint: disable=import-error
 from server_common.helpers import register_ioc_start, get_macro_values  # pylint: disable=import-error
+
+import six  # pylint: disable=import-error
+
+from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
+from pvdb import STATIC_PV_DATABASE, Records
+from config import Constants, PV, LSiPVSeverity, Macro, Defaults
+
+sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
+sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
+
 
 def get_base_pv(reason: str) -> str:
     """
@@ -54,7 +64,7 @@ class LSiCorrelatorIOC(Driver):
     """
     A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
     """
-
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, pv_prefix: str, macros: Dict[str, str]) -> None:
         """
         A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
@@ -65,8 +75,9 @@ class LSiCorrelatorIOC(Driver):
 
         try:
             self.user_filepath = macros[Macro.FILEPATH.name]
-        except KeyError:
-            raise RuntimeError("No file path specified to save data to")
+        except KeyError as key_error:
+            raise RuntimeError("No file path specified to save data to: {}".format(
+                key_error)) from key_error
 
         self.simulated = macros[Macro.SIMULATE.name] == "1" # type: bool
         if self.simulated:
@@ -179,9 +190,9 @@ class LSiCorrelatorIOC(Driver):
             new_pv_value = record.value.convert_to_pv(value_for_lsi_driver)
             try:
                 record.value.set_on_device(self.driver.device, value_for_lsi_driver)
-            except ValueError as e:
+            except ValueError as error:
                 self.update_error_pv_print_and_log(f"Can't update PV {reason}, invalid value")
-                self.update_error_pv_print_and_log(str(e))
+                self.update_error_pv_print_and_log(str(error))
                 return
             else:
                 # No error raised, set new value to pv/params
@@ -359,8 +370,8 @@ class LSiCorrelatorIOC(Driver):
             if experiment_name == "":
                 # No name supplied, use run title
                 experiment_name = ChannelAccess.caget(PV.TITLE.add_prefix(prefix=self.pv_prefix))
-            
-            
+
+
             compressed_experiment_name=remove_non_ascii(experiment_name)  #pylint: disable=unused-variable
 
             filename = "f{run_number}_{compressed_experiment_name}_{timestamp}.dat"
