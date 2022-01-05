@@ -1,3 +1,6 @@
+"""
+Contains information used to define a PCASpy PV, its fields and how its values are read and set.
+"""
 from typing import Dict, Optional, Callable
 from enum import Enum
 from pcaspy.alarm import AlarmStrings, SeverityStrings  # pylint: disable=import-error
@@ -54,12 +57,12 @@ def float_pv_with_unit(unit: str):
 
     return {'type': 'float', 'unit': unit, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
 
-
+# pylint: disable=unused-argument
 def null_device_setter(*args, **kwargs):
     """
     Function to call when device has no setter
     """
-    pass
+    pass  # pylint: disable=unnecessary-pass
 
 
 def do_nothing(value):
@@ -69,7 +72,7 @@ def do_nothing(value):
     return value
 
 
-class Record(object):
+class Record:
     """
     Contains information used to define a PCASpy PV, its fields and how its values are read and set
 
@@ -85,6 +88,7 @@ class Record(object):
         Defaults to do_nothing (no-op)
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(self, name: str, pv_definition: Dict,
                  has_setpoint: Optional[bool] = False,
                  convert_from_pv: Optional[Callable] = do_nothing,
@@ -110,8 +114,8 @@ class Record(object):
         database.update(self.add_val_and_alarm_fields(self.name))
 
         if self.has_setpoint:
-            database.update({"{base_pv}:SP".format(base_pv=self.name): self.pv_definition})
-            database.update(self.add_val_and_alarm_fields("{}:SP".format(self.name)))
+            database.update({f"{self.name}:SP": self.pv_definition})  # update base pv
+            database.update(self.add_val_and_alarm_fields(f"{self.name}:SP"))
 
         return database
 
@@ -123,17 +127,17 @@ class Record(object):
         new_fields = {}
 
         if 'count' in self.pv_definition:
-            new_fields.update({"{pv}.NORD".format(pv=self.name): {
+            new_fields.update({f"{self.name}.NORD": {
                 'type': 'int',
                 'value': 0}
                 })
-            new_fields.update({"{pv}.NELM".format(pv=self.name): {
+            new_fields.update({"f{self.name}.NELM": {
                 'type': 'int',
                 'value': self.pv_definition['count']}
                 })
 
         if 'unit' in self.pv_definition:
-            new_fields.update({"{pv}.EGU".format(pv=self.name): {
+            new_fields.update({f"{self.name}.EGU": {
                 'type': 'string',
                 'value': self.pv_definition['unit']}
                 })
