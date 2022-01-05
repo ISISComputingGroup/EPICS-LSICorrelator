@@ -1,9 +1,14 @@
+"""
+Cointains the data_file_interaction class which is used to interact with the data file.
+"""
 from typing import Dict, TextIO, Tuple
 from io import StringIO
-import numpy as np  # pylint: disable=import-error
 from datetime import datetime
-from pvdb import Records
 from dataclasses import dataclass
+
+import numpy as np  # pylint: disable=import-error
+
+from pvdb import Records
 from config import Schema
 
 
@@ -37,8 +42,8 @@ class DataFile:
         @return (DataFile): A data transfer object to store and format data to write to file.
         """
         data_file = DataFile(data_arrays, user_file, archive_file, metadata)
-        correlation_string, raw_channel_data_string = data_file._format_correlation_and_raw_channel_data()  # pylint: disable=line-too-long
-        data_file._structure_file_data(correlation_string, raw_channel_data_string)
+        correlation_string, raw_channel_data_string = data_file._format_correlation_and_raw_channel_data()  # pylint: disable=line-too-long, protected-access
+        data_file._structure_file_data(correlation_string, raw_channel_data_string)  # pylint: disable=protected-access
         return data_file
 
     def __init__(self, data_arrays: DataArrays, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:  # pylint: disable=line-too-long
