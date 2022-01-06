@@ -1,5 +1,5 @@
 """
-Cointains the data_file_interaction class which is used to interact with the data file.
+Contains the data_file_interaction class which is used to interact with the data file.
 """
 from typing import Dict, TextIO, Tuple
 from io import StringIO
@@ -68,6 +68,7 @@ class DataFile:
         @return (Tuple): A tuple (str, str) of the correlation function and raw channel data
         to write to file.
         """
+
         correlation_data = np.vstack((
             self.data_arrays.time_lags,
             self.data_arrays.correlation)).T

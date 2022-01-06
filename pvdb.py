@@ -25,15 +25,13 @@ def convert_pv_enum_to_lsi_enum(enum_class, pv_value):
         enum_class (Enum): The LSI_Param Enum containing the device parameters
         pv_value (int): The enumerated value from the PV
     """
-    # [member for member in enum_class]
-    enum_as_list = []
 
+    # Find the enum value associated with the PV value
+    enum_as_list = []
     for member in enum_class:
         enum_as_list.append(member)
 
     return enum_as_list[pv_value]
-
-
 
 def convert_lsi_enum_to_pv_value(enum_class, current_state):
     """
@@ -244,7 +242,7 @@ class Records(Enum):
 
     WAIT = Record("WAIT",float_pv_with_unit('s'), has_setpoint = True)
 
-    MIN_TIME_LAG =Record('MIN_TIME_LAG',float_pv_with_unit('ns'), has_setpoint= True)
+    MIN_TIME_LAG =Record('MIN_TIME_LAG',float_pv_with_unit('ns'), has_setpoint= True )
 
 
 

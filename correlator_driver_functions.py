@@ -2,6 +2,8 @@
 Contrains the functions that are used to control the correlator and read its
 data from the correlator API.
 """
+# pylint: disable=wrong-import-position
+
 from __future__ import print_function, unicode_literals, division, absolute_import
 
 import sys
@@ -10,15 +12,15 @@ import traceback
 from typing import Dict, TextIO, Tuple
 from time import sleep
 
+sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
+sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
+
 import six  # pylint: disable=import-error
 import numpy as np  # pylint: disable=import-error
 
 from data_file_interaction import DataArrays, DataFile
 from config import Constants, Macro
 from mocked_correlator_api import MockedCorrelatorAPI
-
-sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
-sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from server_common.utilities import print_and_log  # pylint: disable=import-error, wrong-import-position, wrong-import-order
 from LSICorrelator import LSICorrelator  # pylint: disable=import-error, wrong-import-position, wrong-import-order
@@ -59,6 +61,7 @@ class LSiCorrelatorVendorInterface:
 
         try:
             host = macros[Macro.ADDRESS.name]
+
         except KeyError as key_error:
             raise RuntimeError("No IP address specified, cannot start") from key_error
         firmware_revision = macros.get(

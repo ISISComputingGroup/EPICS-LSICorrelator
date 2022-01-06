@@ -127,13 +127,14 @@ class Record:
         new_fields = {}
 
         if 'count' in self.pv_definition:
+            new_fields.update({f"{self.name}.NELM": {
+                'type': 'int',
+                'value': self.pv_definition['count']}
+                })
+
             new_fields.update({f"{self.name}.NORD": {
                 'type': 'int',
                 'value': 0}
-                })
-            new_fields.update({"f{self.name}.NELM": {
-                'type': 'int',
-                'value': self.pv_definition['count']}
                 })
 
         if 'unit' in self.pv_definition:

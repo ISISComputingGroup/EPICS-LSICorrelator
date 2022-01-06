@@ -1,14 +1,9 @@
 """
 Correlator pcaspy and IOC Elements of the LSiCorrelator IOC
 """
-
-
 from __future__ import print_function, unicode_literals, division, absolute_import
 
-
 from datetime import datetime
-
-
 
 import argparse
 import sys
@@ -17,7 +12,12 @@ import traceback
 from typing import Dict, Any
 import time
 
+# pylint: disable=wrong-import-position
+
 from concurrent.futures import ThreadPoolExecutor
+
+sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
+sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 from pcaspy import SimpleServer, Driver  # pylint: disable=import-error
 from pcaspy.alarm import Alarm, Severity  # pylint: disable=import-error
@@ -32,9 +32,6 @@ import six  # pylint: disable=import-error
 from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
 from pvdb import STATIC_PV_DATABASE, Records
 from config import Constants, PV, LSiPVSeverity, Macro, Defaults
-
-sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
-sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 
 def get_base_pv(reason: str) -> str:
@@ -300,6 +297,7 @@ class LSiCorrelatorIOC(Driver):
                 self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, self.driver.corr)
                 self.set_array_pv_value(Records.LAGS.name, self.driver.lags)
 
+                # Save data to file
                 with open(self.get_user_filename(), "w+", encoding="utf-8") as user_file, \
                         open(self.get_archive_filename(), "w+", encoding="utf-8") as archive_file:
                     self.driver.save_data(min_time_lag,user_file, archive_file, self.get_metadata())
@@ -363,7 +361,7 @@ class LSiCorrelatorIOC(Driver):
         else:
             run_number = ChannelAccess.caget(PV.RUNNUMBER.add_prefix(prefix=self.pv_prefix))
             print_and_log(f"run number = {run_number}")
-            timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")  #pylint: disable=unused-variable
+            timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")  # pylint: disable=unused-variable
 
             experiment_name = self.get_converted_pv_value(Records.EXPERIMENTNAME.name)
 
@@ -371,9 +369,8 @@ class LSiCorrelatorIOC(Driver):
                 # No name supplied, use run title
                 experiment_name = ChannelAccess.caget(PV.TITLE.add_prefix(prefix=self.pv_prefix))
 
-
+            # Remove characters that are not allowed in filename and replace with underscore (_)
             compressed_experiment_name=remove_non_ascii(experiment_name)  #pylint: disable=unused-variable
-
             filename = "f{run_number}_{compressed_experiment_name}_{timestamp}.dat"
 
         # Update last used filename PV
@@ -393,7 +390,8 @@ def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]) -> None
     containing IOC macros
     @return: None
     """
-    ioc_name_with_pv_prefix = "f{pv_prefix}{ioc_name}:"
+
+    ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(pv_prefix=pv_prefix, ioc_name=ioc_name)  # pylint: disable=line-too-long
     print_and_log(ioc_name_with_pv_prefix)
     server = SimpleServer()
 
