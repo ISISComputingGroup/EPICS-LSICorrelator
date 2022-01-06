@@ -391,7 +391,7 @@ def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]) -> None
     @return: None
     """
 
-    ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(pv_prefix=pv_prefix, ioc_name=ioc_name)  # pylint: disable=line-too-long
+    ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(pv_prefix=pv_prefix, ioc_name=ioc_name)  # pylint: disable=line-too-long, consider-using-f-string
     print_and_log(ioc_name_with_pv_prefix)
     server = SimpleServer()
 
