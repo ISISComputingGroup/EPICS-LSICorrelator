@@ -20,7 +20,9 @@ class Constants:
 
 
 class Macro(Enum):
-
+    """
+    Macros used by the LSICorrelator
+    """
     SIMULATE = {"macro": "SIMULATE"}
     ADDRESS = {"macro": "ADDR"}
     FILEPATH = {"macro": "FILEPATH"}
