@@ -1,9 +1,14 @@
+"""
+Contains the data_file_interaction class which is used to interact with the data file.
+"""
 from typing import Dict, TextIO, Tuple
 from io import StringIO
-import numpy as np
 from datetime import datetime
-from pvdb import Records
 from dataclasses import dataclass
+
+import numpy as np  # pylint: disable=import-error
+
+from pvdb import Records
 from config import Schema
 
 
@@ -25,26 +30,30 @@ class DataFile:
     """
 
     @staticmethod
-    def create_file_data(data_arrays: DataArrays, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> 'DataFile':
+    def create_file_data(data_arrays: DataArrays, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> 'DataFile':  # pylint: disable=line-too-long
         """
         Create a data transfer object to store and format data to write to file.
         @param data_arrays (DataArrays): A data transfer object to store the relevant data ndarrays.
-        @param user_file (TextIO): The user file to write metadata, correlation, time_lags and the traces to
-        @param archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
+        @param user_file (TextIO): The user file to write metadata, correlation, time_lags and
+        the traces to
+        @param archive_file (TextIO): The archive file to write metadata, correlation, time_lags and
+        the traces to
         @param metadata (Dict): A dictionary of metadata to write to the file
         @return (DataFile): A data transfer object to store and format data to write to file.
         """
         data_file = DataFile(data_arrays, user_file, archive_file, metadata)
-        correlation_string, raw_channel_data_string = data_file._format_correlation_and_raw_channel_data()
-        data_file._structure_file_data(correlation_string, raw_channel_data_string)
+        correlation_string, raw_channel_data_string = data_file._format_correlation_and_raw_channel_data()  # pylint: disable=line-too-long, protected-access
+        data_file._structure_file_data(correlation_string, raw_channel_data_string)  # pylint: disable=protected-access
         return data_file
 
-    def __init__(self, data_arrays: DataArrays, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:
+    def __init__(self, data_arrays: DataArrays, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:  # pylint: disable=line-too-long
         """
         Initialize the data transfer object.
-        @param data_arrays (DataArrays): A data transfer object to store the relevant data ndarrays.
-        @param user_file (TextIO): The user file to write metadata, correlation, time_lags and the traces to
-        @param archive_file (TextIO): The archive file to write metadata, correlation, time_lags and the traces to
+        @param data_arrays (DataArrays): A data transfer object to store the relevant data ndarrays
+        @param user_file (TextIO): The user file to write metadata, correlation,
+        time_lags and the traces to
+        @param archive_file (TextIO): The archive file to write metadata, correlation,
+        time_lags and the traces to
         @param metadata (Dict): A dictionary of metadata to write to the file
         """
         self.data_arrays: DataArrays = data_arrays
@@ -56,10 +65,19 @@ class DataFile:
     def _format_correlation_and_raw_channel_data(self) -> Tuple[StringIO, StringIO]:
         """
         A private method to format the correlation function and raw channel data to write to file.
-        @return (Tuple): A tuple (str, str) of the correlation function and raw channel data to write to file.
+        @return (Tuple): A tuple (str, str) of the correlation function and raw channel data
+        to write to file.
         """
-        correlation_data = np.vstack((self.data_arrays.time_lags, self.data_arrays.correlation)).T
-        raw_channel_data = np.vstack((self.data_arrays.trace_time, self.data_arrays.trace_a, self.data_arrays.trace_b)).T
+
+        correlation_data = np.vstack((
+            self.data_arrays.time_lags,
+            self.data_arrays.correlation)).T
+
+        raw_channel_data = np.vstack((
+            self.data_arrays.trace_time,
+            self.data_arrays.trace_a,
+            self.data_arrays.trace_b)).T
+
         correlation_file = StringIO()
         np.savetxt(correlation_file, correlation_data, delimiter='\t', fmt='%1.6e')
         correlation_string = correlation_file.getvalue()
@@ -75,7 +93,7 @@ class DataFile:
         @param raw_channel_data_string (StringIO): The raw channel data to write to file.
         @return (None): None
         """
-        correlation_string, raw_channel_data_string = self._format_correlation_and_raw_channel_data()
+        correlation_string, raw_channel_data_string = self._format_correlation_and_raw_channel_data()  # pylint: disable=line-too-long
         self.save_file = Schema.FILE_SCHEME.format(
             datetime=datetime.now().strftime("%m/%d/%Y\t%H:%M %p"),
             scattering_angle=self.metadata[Records.SCATTERING_ANGLE.name],

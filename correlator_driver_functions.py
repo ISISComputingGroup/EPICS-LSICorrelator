@@ -1,39 +1,44 @@
+"""
+Contrains the functions that are used to control the correlator and read its
+data from the correlator API.
+"""
+# pylint: disable=wrong-import-position
+
 from __future__ import print_function, unicode_literals, division, absolute_import
 
 import sys
 import os
 import traceback
 from typing import Dict, TextIO, Tuple
-
-import six
-
-import numpy as np
-
 from time import sleep
-
-from data_file_interaction import DataArrays, DataFile
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
-from LSICorrelator import LSICorrelator
+import six  # pylint: disable=import-error
+import numpy as np  # pylint: disable=import-error
+
+from data_file_interaction import DataArrays, DataFile
+from config import Constants, Macro
 from mocked_correlator_api import MockedCorrelatorAPI
 
-from server_common.utilities import print_and_log
-from config import Constants, Macro
+from server_common.utilities import print_and_log  # pylint: disable=import-error, wrong-import-position, wrong-import-order
+from LSICorrelator import LSICorrelator  # pylint: disable=import-error, wrong-import-position, wrong-import-order
 
 
 def _error_handler(func):
     """
-    A wrapper for the correlator driver functions that catches any errors and 
+    A wrapper for the correlator driver functions that catches any errors and
     prints them to the log file.
     @param func: The function to wrap.
     @return: The wrapped function.
     """
+    # pylint: disable=inconsistent-return-statements
     @six.wraps(func)
     def _wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        # pylint: disable=broad-except
         except Exception:
             print_and_log(traceback.format_exc(), src="lsi ")
     return _wrapper
@@ -56,9 +61,12 @@ class LSiCorrelatorVendorInterface:
 
         try:
             host = macros[Macro.ADDRESS.name]
-        except KeyError:
-            raise RuntimeError("No IP address specified, cannot start")
-        firmware_revision = macros.get(Macro.FIRMWARE_REVISION.name, Macro.FIRMWARE_REVISION.value["default"])
+
+        except KeyError as key_error:
+            raise RuntimeError("No IP address specified, cannot start") from key_error
+        firmware_revision = macros.get(
+            Macro.FIRMWARE_REVISION.name,
+            Macro.FIRMWARE_REVISION.value["default"])
 
         if simulated:
             self.mocked_api = MockedCorrelatorAPI()
@@ -71,34 +79,35 @@ class LSiCorrelatorVendorInterface:
         self.lags = None
         self.has_data = False
 
-    def remove_data_with_time_lags_lower_than_minimum(self, lags: np.ndarray, corr: np.ndarray, min_time_lag: float) -> Tuple[np.ndarray, np.ndarray]:
+    @staticmethod
+    def remove_data_with_time_lags_lower_than_minimum(lags: np.ndarray, corr: np.ndarray, min_time_lag: float) -> Tuple[np.ndarray, np.ndarray]:  # pylint: disable=line-too-long
         """
         Remove lags and corresponding corr values which have lags values below the minimum time lag
         @param lags (np.ndarray): The original time lags values to remove values from
         @param corr (np.ndarray): The original correlation values to remove values from
         @param min_time_lag (float): The minimum time lag to include
-        @return (Tuple[np.ndarray, np.ndarray]): The correlation function values whose corresponding 
-        time lag is greater than or equal to min_time_lag and Time lags that are greater than min_time_lag
+        @return (Tuple[np.ndarray, np.ndarray]): The correlation function value whose corresponding
+        time lag is greater than or equal to min_time_lag and Time lags that are greater
+        than min_time_lag
         """
-        indices = []
-        for count in range(0, len(lags)):
-            if lags[count] < min_time_lag:
-                indices.append(count)
+        indices = [count for count in range(0, len(lags)) if lags[count] < min_time_lag]
 
         lags = np.delete(lags,indices)
         corr = np.delete(corr,indices)
 
         return lags, corr
 
-    def get_data_as_arrays(self, min_time_lag) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def get_data_as_arrays(self, min_time_lag) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:  # pylint: disable=line-too-long
         """
         Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
         The correlation function and time lags are filtered to finite values only.
         @param min_time_lag (float): The minimum time lag to include.
 
         @Returns (Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]):
-            Corr (ndarray): The finite values of the correlation function whose corresponding time lag is greater than or equal to min_time_lag
-            Lags (ndarray): Time lags where the correlation function is finite that are greater than or equal to min_time_lag
+            Corr (ndarray): The finite values of the correlation function whose time lag is
+            greater or equal to min_time_lag
+            Lags (ndarray): Time lags where the correlation function is finite that are
+            greater than or equal to min_time_lag
             trace_A (ndarray): Raw photon counts for channel A
             trace_B (ndarray): Raw photon counts for channel B
             trace_time (ndarray): Time trace constructed from length of raw data
@@ -129,7 +138,8 @@ class LSiCorrelatorVendorInterface:
     @_error_handler
     def take_data(self, min_time_lag) -> None:
         """
-        Starts taking data from the LSi Correlator once with the currently configure device settings.
+        Starts taking data from the LSi Correlator once with the currently
+        configured device settings.
         @param min_time_lag (float): The minimum time lag to include.
         @return: None
         """
@@ -148,7 +158,7 @@ class LSiCorrelatorVendorInterface:
             self.corr = corr
             self.lags = lags
 
-    def save_data(self, min_time_lag: float, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:
+    def save_data(self, min_time_lag: float, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:  # pylint: disable=line-too-long
         """
         Save the data to file.
         @param min_time_lag (float): The minimum time lag to include.

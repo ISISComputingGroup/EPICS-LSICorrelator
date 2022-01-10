@@ -1,4 +1,9 @@
+"""
+Correlator pcaspy and IOC Elements of the LSiCorrelator IOC
+"""
 from __future__ import print_function, unicode_literals, division, absolute_import
+
+from datetime import datetime
 
 import argparse
 import sys
@@ -7,28 +12,30 @@ import traceback
 from typing import Dict, Any
 import time
 
-import six
+# pylint: disable=wrong-import-position
 
-from pcaspy import SimpleServer, Driver
-from pcaspy.alarm import Alarm, Severity
 from concurrent.futures import ThreadPoolExecutor
 
-from datetime import datetime
-
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
-sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master")) 
+sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
+
+from pcaspy import SimpleServer, Driver  # pylint: disable=import-error
+from pcaspy.alarm import Alarm, Severity  # pylint: disable=import-error
+
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER  # pylint: disable=import-error
+from server_common.utilities import print_and_log  # pylint: disable=import-error
+from server_common.channel_access import ChannelAccess  # pylint: disable=import-error
+from server_common.helpers import register_ioc_start, get_macro_values  # pylint: disable=import-error
+
+import six  # pylint: disable=import-error
 
 from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
+from pvdb import STATIC_PV_DATABASE, Records
 from config import Constants, PV, LSiPVSeverity, Macro, Defaults
 
-from pvdb import STATIC_PV_DATABASE, Records
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from server_common.utilities import print_and_log
-from server_common.channel_access import ChannelAccess
-from server_common.helpers import register_ioc_start, get_macro_values
 
 def get_base_pv(reason: str) -> str:
-    """ 
+    """
     Trims trailing :SP off a PV name
     @param reason (str): The PV name to trim
     @return (str): The trimmed PV name
@@ -54,7 +61,7 @@ class LSiCorrelatorIOC(Driver):
     """
     A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
     """
-
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, pv_prefix: str, macros: Dict[str, str]) -> None:
         """
         A class containing pcaspy and IOC elements of the LSiCorrelator IOC.
@@ -65,8 +72,9 @@ class LSiCorrelatorIOC(Driver):
 
         try:
             self.user_filepath = macros[Macro.FILEPATH.name]
-        except KeyError:
-            raise RuntimeError("No file path specified to save data to")
+        except KeyError as key_error:
+            raise RuntimeError(f"No file path specified to save data to: {key_error}".format(
+                key_error)) from key_error
 
         self.simulated = macros[Macro.SIMULATE.name] == "1" # type: bool
         if self.simulated:
@@ -86,18 +94,18 @@ class LSiCorrelatorIOC(Driver):
 
         if not os.path.isdir(self.user_filepath):
             self.update_error_pv_print_and_log(
-                "LSiCorrelatorDriver: {} is invalid file path".format(self.user_filepath),
+                f"LSiCorrelatorDriver: {self.user_filepath} is invalid file path",
                 LSiPVSeverity.MAJOR.value
             )
 
         for record, default_value in defaults.items():
             # Write defaults to device
-            print_and_log("setting {} to default {}".format(record.name, default_value))
+            print_and_log(f"setting {record.name} to default {default_value}")
             self.update_pv_and_write_to_device(record.name, record.convert_to_pv(default_value))
 
         self.updatePVs()
 
-    def update_error_pv_print_and_log(self, error: str, severity: LSiPVSeverity = LSiPVSeverity.INFO, src: str = "LSI") -> None:
+    def update_error_pv_print_and_log(self, error: str, severity: LSiPVSeverity = LSiPVSeverity.INFO, src: str = "LSI") -> None:  # pylint: disable=line-too-long
         """
         Updates the error PV with the provided error message, then prints and logs the error
         @param error (str): The error message to write to the error PV
@@ -110,7 +118,8 @@ class LSiCorrelatorIOC(Driver):
     def set_disconnected_alarms(self, in_alarm: bool):
         """
         Sets disconnected alarms if in_alarm is True
-        @param in_alarm (bool): Whether to set the disconnected alarms or not (True = set, False = clear)
+        @param in_alarm (bool): Whether to set the disconnected alarms or
+        not (True = set, False = clear)
         """
         if in_alarm:
             severity = Severity.INVALID_ALARM
@@ -127,8 +136,8 @@ class LSiCorrelatorIOC(Driver):
 
     def get_converted_pv_value(self, reason: str) -> Any:
         """
-        If the supplied reason has a defining record, applies the convert_from_pv transformation to current pv value
-        else returns current pv value.
+        If the supplied reason has a defining record, applies the convert_from_pv
+        transformation to current pv value else returns current pv value.
         @param reason (str): The name of the PV to get the value of (without the prefix)
         @return (Any): The converted PV value
         """
@@ -145,29 +154,31 @@ class LSiCorrelatorIOC(Driver):
         """
         Updates given param, VAL field, and alarm status/severity in PCASpy driver
         @param reason (str): The name of the PV to get the value of (without the prefix)
-        @param value (Any): The value to update the PV, pv.VAL field, and alarm status/severity with
+        @param value (Any): Value to update the PV, pv.VAL field, and alarm status/severity with
         """
         try:
             self.setParam(reason, value)
-            self.setParam("{reason}.VAL".format(reason=reason), value)
+            self.setParam(f"{reason}.VAL", value)
             self.setParamStatus(reason, self.alarm_status, self.alarm_severity)
         except ValueError as err:
-            self.update_error_pv_print_and_log("Error setting PV {pv} to {value}:".format(pv=reason, value=value))
-            self.update_error_pv_print_and_log("{}".format(err))
+            self.update_error_pv_print_and_log(f"Error setting PV {reason} to {value}:")
+            self.update_error_pv_print_and_log(f"{err}")
 
     @_error_handler
-    def update_pv_and_write_to_device(self, reason: str, value: Any, update_setpoint: bool = False) -> None:
+    def update_pv_and_write_to_device(self, reason: str, value: Any, update_setpoint: bool = False) -> None:  # pylint: disable=line-too-long
         """
-        Helper function to update the value of a PV held in this driver and sets the value on the device.
+        Helper function to update the value of a PV held in this driver and sets the value
+        on the device.
         @param reason (str): The name of the PV to set
         @param value (Any): The new value to set the PV to
-        @param update_setpoint (bool): Whether to update the setpoint of the device or not (defaults to False) - if True, reason:SP pv will be updated
+        @param update_setpoint (bool): Whether to update the setpoint of the device or not
+        (defaults to False) - if True, reason:SP pv will be updated
         """
 
         try:
             record = Records[reason]
         except KeyError:
-            self.update_error_pv_print_and_log("Can't update PV {}, PV not found".format(reason))
+            self.update_error_pv_print_and_log(f"Can't update PV {reason}, PV not found")
             record = None
 
         if record is not None:
@@ -176,15 +187,15 @@ class LSiCorrelatorIOC(Driver):
             new_pv_value = record.value.convert_to_pv(value_for_lsi_driver)
             try:
                 record.value.set_on_device(self.driver.device, value_for_lsi_driver)
-            except ValueError as e:
-                self.update_error_pv_print_and_log("Can't update PV {}, invalid value".format(reason))
-                self.update_error_pv_print_and_log(str(e))
+            except ValueError as error:
+                self.update_error_pv_print_and_log(f"Can't update PV {reason}, invalid value")
+                self.update_error_pv_print_and_log(str(error))
                 return
             else:
                 # No error raised, set new value to pv/params
                 self.update_param_and_fields(reason, new_pv_value)
                 if update_setpoint:
-                    self.update_param_and_fields("{reason}:SP".format(reason=reason), new_pv_value)
+                    self.update_param_and_fields(f"{reason}:SP", new_pv_value)
 
         # Update PVs after any write
         self.updatePVs()
@@ -197,7 +208,7 @@ class LSiCorrelatorIOC(Driver):
         """
 
         self.update_pv_and_write_to_device(reason, value)
-        self.setParam("{reason}.NORD".format(reason=reason), len(value))
+        self.setParam(f"{reason}.NORD", len(value))
 
     @_error_handler
     def write(self, reason: str, value: Any) -> None:
@@ -207,7 +218,7 @@ class LSiCorrelatorIOC(Driver):
         @param value (Any): The new value to set the PV to
         """
 
-        print_and_log("LSiCorrelatorDriver: Processing PV write for reason {} value {}".format(reason, value))
+        print_and_log(f"LSiCorrelatorDriver: Processing PV write for reason {reason} value {value}")
         if reason == Records.START.name and not self.already_started:
             THREADPOOL.submit(self.take_data)
         elif reason == Records.START.name and self.already_started:
@@ -215,9 +226,16 @@ class LSiCorrelatorIOC(Driver):
 
         if reason.endswith(":SP"):
             # Update both SP and non-SP fields
-            THREADPOOL.submit(self.update_pv_and_write_to_device, get_base_pv(reason), value, update_setpoint=True)
+            THREADPOOL.submit(
+                self.update_pv_and_write_to_device,
+                get_base_pv(reason),
+                value,
+                update_setpoint=True)
         else:
-            THREADPOOL.submit(self.update_pv_and_write_to_device, reason, value)
+            THREADPOOL.submit(
+                self.update_pv_and_write_to_device,
+                reason,
+                value)
 
     @_error_handler
     def read(self, reason: str) -> Any:
@@ -233,8 +251,12 @@ class LSiCorrelatorIOC(Driver):
         else:
             pv_value = self.getParam(reason)
         return pv_value
-    
+
     def wait(self, wait_in_seconds) -> None:
+        """
+        Wait for a specified number of seconds
+        @param wait_in_seconds (float): The number of seconds to wait
+        """
         self.update_pv_and_write_to_device(Records.WAITING.name, True)
         time.sleep(wait_in_seconds)
         self.update_pv_and_write_to_device(Records.WAITING.name, False)
@@ -242,14 +264,14 @@ class LSiCorrelatorIOC(Driver):
     @_error_handler
     def take_data(self) -> None:
         """
-        Sends settings parameters to the LSi driver and takes data (and saves the data) from the LSi Correlator
-        with the given number of repetitions. Sends IOC into alarm if no data is returned
-        (as the correlator may be disconnected).
+        Sends settings parameters to the LSi driver and takes data (and saves the data)
+        from the LSi Correlator with the given number of repetitions.
+        Sends IOC into alarm if no data is returned (as the correlator may be disconnected).
         """
         try:
             self.driver.configure()
-        except RuntimeError as e:
-            self.update_error_pv_print_and_log(str(e))
+        except RuntimeError as error:
+            self.update_error_pv_print_and_log(str(error))
 
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         wait_in_seconds = self.get_converted_pv_value(Records.WAIT.name)
@@ -275,21 +297,23 @@ class LSiCorrelatorIOC(Driver):
                 self.set_array_pv_value(Records.CORRELATION_FUNCTION.name, self.driver.corr)
                 self.set_array_pv_value(Records.LAGS.name, self.driver.lags)
 
-                with open(self.get_user_filename(), "w+") as user_file, \
-                        open(self.get_archive_filename(), "w+") as archive_file:
+                # Save data to file
+                with open(self.get_user_filename(), "w+", encoding="utf-8") as user_file, \
+                        open(self.get_archive_filename(), "w+", encoding="utf-8") as archive_file:
                     self.driver.save_data(min_time_lag,user_file, archive_file, self.get_metadata())
             else:
                 # No data returned, correlator may be disconnected
                 self.update_pv_and_write_to_device(Records.CONNECTED.name, False)
-                self.update_error_pv_print_and_log("LSiCorrelatorDriver: No data read, device could be disconnected",
-                                                   LSiPVSeverity.INVALID)
+                self.update_error_pv_print_and_log(
+                    "LSiCorrelatorDriver: No data read, device could be disconnected",
+                    LSiPVSeverity.INVALID)
                 self.set_disconnected_alarms(True)
-        
+
         self.update_pv_and_write_to_device(Records.TAKING_DATA.name, False)
         self.already_started = False
         # Set start PV back to NO, purely for aesthetics (this PV is actually always ready)
         self.update_param_and_fields(Records.START.name, 0)
-        self.update_param_and_fields("{pv}:SP".format(pv=Records.START.name), 0)
+        self.update_param_and_fields(f"{Records.START.name}:SP", 0)
 
     def get_metadata(self) -> Dict:
         """
@@ -306,19 +330,20 @@ class LSiCorrelatorIOC(Driver):
         """
         Returns a filename which the archive data file will be saved with.
 
-        If device is simulated do not attempt to get instrument name or run number from channel access.
+        If device is simulated do not attempt to get instrument name or run number
+        from channel access.
         If simulated save file in user directory instead of usual data directory.
         @return (str): Filename to save archive data to
         """
         if self.simulated:
-            full_filename = os.path.join(self.user_filepath, Constants.SIMULATE_ARCHIVE_DAT_FILE_NAME)
+            full_filename = os.path.join(
+                self.user_filepath,
+                Constants.SIMULATE_ARCHIVE_DAT_FILE_NAME)
         else:
             timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
             run_number = ChannelAccess.caget(PV.RUNNUMBER.add_prefix(prefix=self.pv_prefix))
             instrument = ChannelAccess.caget(PV.INSTNAME.add_prefix(prefix=self.pv_prefix))
-            filename = "{instrument}{run_number}_DLS_{timestamp}.txt".format(instrument=instrument,
-                                                                             run_number=run_number,
-                                                                             timestamp=timestamp)
+            filename = f"{instrument}{run_number}_DLS_{timestamp}.txt"
 
             full_filename = os.path.join(Constants.DATA_DIR, filename)
         return full_filename
@@ -335,8 +360,8 @@ class LSiCorrelatorIOC(Driver):
             filename = Constants.SIMULATE_USER_DAT_FILE_NAME
         else:
             run_number = ChannelAccess.caget(PV.RUNNUMBER.add_prefix(prefix=self.pv_prefix))
-            print_and_log("run number = {}".format(run_number))
-            timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+            print_and_log(f"run number = {run_number}")
+            timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")  # pylint: disable=unused-variable
 
             experiment_name = self.get_converted_pv_value(Records.EXPERIMENTNAME.name)
 
@@ -344,9 +369,9 @@ class LSiCorrelatorIOC(Driver):
                 # No name supplied, use run title
                 experiment_name = ChannelAccess.caget(PV.TITLE.add_prefix(prefix=self.pv_prefix))
 
-            filename = "{run_number}_{experiment_name}_{timestamp}.dat".format(
-                run_number=run_number, experiment_name=remove_non_ascii(experiment_name), timestamp=timestamp
-                )
+            # Remove characters that are not allowed in filename and replace with underscore (_)
+            compressed_experiment_name=remove_non_ascii(experiment_name)  #pylint: disable=unused-variable
+            filename = "f{run_number}_{compressed_experiment_name}_{timestamp}.dat"
 
         # Update last used filename PV
         full_filename = os.path.join(self.user_filepath, filename)
@@ -361,18 +386,21 @@ def serve_forever(ioc_name: str, pv_prefix: str, macros: Dict[str, str]) -> None
 
     @param ioc_name (str): The name of the IOC to run, including the ioc name (i.e. "LSICORR_01")
     @param pv_prefix (str): The prefix to use for the PVs
-    @param macros (Dict[str, str]): The macros to use for the PVs - A dictionary containing IOC macros
+    @param macros (Dict[str, str]): The macros to use for the PVs - A dictionary
+    containing IOC macros
     @return: None
     """
-    ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(pv_prefix=pv_prefix, ioc_name=ioc_name)
+
+    ioc_name_with_pv_prefix = "{pv_prefix}{ioc_name}:".format(pv_prefix=pv_prefix, ioc_name=ioc_name)  # pylint: disable=line-too-long, consider-using-f-string
     print_and_log(ioc_name_with_pv_prefix)
     server = SimpleServer()
 
     server.createPV(ioc_name_with_pv_prefix, STATIC_PV_DATABASE)
 
     # Run heartbeat IOC, this is done with a different prefix
-    server.createPV(prefix="{pv_prefix}CS:IOC:{ioc_name}:DEVIOS:".format(pv_prefix=pv_prefix, ioc_name=ioc_name),
-                    pvdb={"HEARTBEAT": {"type": "int", "value": 0}})
+    server.createPV(
+        prefix="f{pv_prefix}CS:IOC:{ioc_name}:DEVIOS:",
+        pvdb={"HEARTBEAT": {"type": "int", "value": 0}})
 
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
@@ -419,7 +447,4 @@ def main():
 
 
 if __name__ == "__main__":
-    """
-    Run the main function if this script is called directly.
-    """
     main()

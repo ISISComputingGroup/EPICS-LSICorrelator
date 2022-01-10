@@ -1,13 +1,17 @@
-from enum import Enum
-from LSI import LSI_Param
-from pvdb import STATIC_PV_DATABASE, Records
+"""
+Contains Constants for the LSI Correlator
+"""
+# pylint: disable=too-few-public-methods
 
+from enum import Enum
+from LSI import LSI_Param  # pylint: disable=import-error
+from pvdb import STATIC_PV_DATABASE, Records  # pylint: disable=unused-import
 
 class Constants:
     """
     Constants used by the LSICorrelator
     """
-    
+
     DELTA_T = 0.0524288 # Magic number, seems to be time between measurements.
     SLEEP_BETWEEN_MEASUREMENTS = 0.5
     DATA_DIR = r"c:\Data"
@@ -16,28 +20,41 @@ class Constants:
 
 
 class Macro(Enum):
-    
+    """
+    Macros used by the LSICorrelator
+    """
     SIMULATE = {"macro": "SIMULATE"}
     ADDRESS = {"macro": "ADDR"}
     FILEPATH = {"macro": "FILEPATH"}
     FIRMWARE_REVISION = {"macro": "FIRMWARE_REVISION", "default": "4.0.0.3"}
 
+    # pylint: disable=function-redefined, invalid-overridden-method
     @property
     def name(self):
         return self.value["macro"]
 
 
 class PV(Enum):
+    """
+    PVs used by the LSICorrelator from the DAE to get
+    information about the instrument
+    """
 
-    # PVs from the DAE to get information about instrument
     RUNNUMBER = "DAE:RUNNUMBER"
     TITLE = "DAE:TITLE"
     INSTNAME = "DAE:INSTNAME"
 
     def add_prefix(self, prefix):
+        """
+        Add a prefix to the PV name
+        @param prefix (str): the prefix to add
+        """
         return f"{prefix}{self.value}"
 
 class LSiPVSeverity(Enum):
+    """
+    Severity states of the LSi PV
+    """
 
     MAJOR = "MAJOR"
     MINOR = "MINOR"
@@ -86,6 +103,9 @@ class Defaults:
         ]
 
 class Schema:
+    """
+    File schema for the LSICorrelator
+    """
     FILE_SCHEME = """{datetime}
 Pseudo Cross Correlation
 Scattering angle:\t{scattering_angle:.1f}
@@ -106,4 +126,3 @@ Lag time (s)         g2-1
 {correlation_function}
 Count Rate History (KHz)  CR CHA / CR CHB
 {count_rate_history}"""
-    

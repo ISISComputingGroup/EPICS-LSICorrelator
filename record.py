@@ -1,10 +1,38 @@
+"""
+Contains information used to define a PCASpy PV, its fields and how its values are read and set.
+"""
 from typing import Dict, Optional, Callable
 from enum import Enum
-from pcaspy.alarm import AlarmStrings, SeverityStrings
+from pcaspy.alarm import AlarmStrings, SeverityStrings  # pylint: disable=import-error
 
-PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"], 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
-INT_AS_FLOAT_PV = {'type': 'float', 'prec': 0, 'value': 0.0, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
-CHAR_PV_FIELDS = {'type': 'char', 'count': 400, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
+PARAM_FIELDS_BINARY = {
+    'type': 'enum',
+    'enums': ["NO", "YES"],
+    'info_field': {
+        'archive': 'VAL',
+        'INTEREST': 'HIGH'
+    }
+}
+
+INT_AS_FLOAT_PV = {
+    'type': 'float',
+    'prec': 0,
+    'value': 0.0,
+    'info_field': {
+        'archive': 'VAL',
+        'INTEREST': 'HIGH'
+    }
+}
+
+CHAR_PV_FIELDS = {
+    'type': 'char',
+    'count': 400,
+    'info_field': {
+        'archive': 'VAL',
+        'INTEREST': 'HIGH'
+    }
+}
+
 FLOAT_ARRAY = {'type': 'float', 'count': 400}
 # Truncate as enum can only contain 16 states
 ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStrings[:16]}
@@ -29,12 +57,12 @@ def float_pv_with_unit(unit: str):
 
     return {'type': 'float', 'unit': unit, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
 
-
+# pylint: disable=unused-argument
 def null_device_setter(*args, **kwargs):
     """
     Function to call when device has no setter
     """
-    pass
+    pass  # pylint: disable=unnecessary-pass
 
 
 def do_nothing(value):
@@ -44,7 +72,7 @@ def do_nothing(value):
     return value
 
 
-class Record(object):
+class Record:
     """
     Contains information used to define a PCASpy PV, its fields and how its values are read and set
 
@@ -52,13 +80,15 @@ class Record(object):
         name: The name of the base PV
         pv_definition: Dict containing the fields specified in the PCASpy database field definition
         has_setpoint: If True, this record will also have a setpoint PV (ending in :SP).
-        convert_from_pv: Callable which converts the supplied value (e.g. an enum value) to a value more easily handled.
-                         Defaults to do_nothing (no-op)
-        convert_to_pv: Callable which converts an internal/easily interpreted value to one that can be written to a pv.
-                       Defaults to do_nothing (no-op)
-        device_setter: Function which is called when the PV is written do. Defaults to do_nothing (no-op)
+        convert_from_pv: Callable which converts the supplied value (e.g. an enum value)
+        to a value more easily handled. Defaults to do_nothing (no-op)
+        convert_to_pv: Callable which converts an internal/easily interpreted value to one that
+        can be written to a pv. Defaults to do_nothing (no-op)
+        device_setter: Function which is called when the PV is written do.
+        Defaults to do_nothing (no-op)
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(self, name: str, pv_definition: Dict,
                  has_setpoint: Optional[bool] = False,
                  convert_from_pv: Optional[Callable] = do_nothing,
@@ -84,21 +114,34 @@ class Record(object):
         database.update(self.add_val_and_alarm_fields(self.name))
 
         if self.has_setpoint:
-            database.update({"{base_pv}:SP".format(base_pv=self.name): self.pv_definition})
-            database.update(self.add_val_and_alarm_fields("{}:SP".format(self.name)))
+            database.update({f"{self.name}:SP": self.pv_definition})  # update base pv
+            database.update(self.add_val_and_alarm_fields(f"{self.name}:SP"))
 
         return database
 
     def add_standard_fields(self) -> Dict:
-        """ Uses the optionals present in self.pv_definition to add typical fields required for this record """
+        """
+        Uses the optionals present in self.pv_definition to add typical fields
+        required for this record
+        """
         new_fields = {}
 
         if 'count' in self.pv_definition:
-            new_fields.update({"{pv}.NORD".format(pv=self.name): {'type': 'int', 'value': 0}})
-            new_fields.update({"{pv}.NELM".format(pv=self.name): {'type': 'int', 'value': self.pv_definition['count']}})
+            new_fields.update({f"{self.name}.NELM": {
+                'type': 'int',
+                'value': self.pv_definition['count']}
+                })
+
+            new_fields.update({f"{self.name}.NORD": {
+                'type': 'int',
+                'value': 0}
+                })
 
         if 'unit' in self.pv_definition:
-            new_fields.update({"{pv}.EGU".format(pv=self.name): {'type': 'string', 'value': self.pv_definition['unit']}})
+            new_fields.update({f"{self.name}.EGU": {
+                'type': 'string',
+                'value': self.pv_definition['unit']}
+                })
 
         return new_fields
 
@@ -115,8 +158,8 @@ class Record(object):
 
         new_fields = {}
 
-        new_fields.update({"{base_pv}.VAL".format(base_pv=base_pv): self.pv_definition})
-        new_fields.update({"{base_pv}.SEVR".format(base_pv=base_pv): ALARM_SEVR_PV_FIELDS})
-        new_fields.update({"{base_pv}.STAT".format(base_pv=base_pv): ALARM_STAT_PV_FIELDS})
+        new_fields.update({f"{base_pv}.VAL": self.pv_definition})
+        new_fields.update({f"{base_pv}.SEVR": ALARM_SEVR_PV_FIELDS})
+        new_fields.update({f"{base_pv}.STAT": ALARM_STAT_PV_FIELDS})
 
         return new_fields
