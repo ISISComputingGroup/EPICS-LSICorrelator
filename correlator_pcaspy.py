@@ -371,7 +371,7 @@ class LSiCorrelatorIOC(Driver):
 
             # Remove characters that are not allowed in filename and replace with underscore (_)
             compressed_experiment_name=remove_non_ascii(experiment_name)  #pylint: disable=unused-variable
-            filename = "f{run_number}_{compressed_experiment_name}_{timestamp}.dat"
+            filename = f"{run_number}_{compressed_experiment_name}_{timestamp}.dat"
 
         # Update last used filename PV
         full_filename = os.path.join(self.user_filepath, filename)
