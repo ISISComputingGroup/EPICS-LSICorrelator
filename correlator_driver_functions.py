@@ -90,7 +90,7 @@ class LSiCorrelatorVendorInterface:
         time lag is greater than or equal to min_time_lag and Time lags that are greater
         than min_time_lag
         """
-        indices = [count for count in range(0, len(lags)) if lags[count] < min_time_lag]
+        indices = [count for count in range(0, len(lags)) if lags[count] >= min_time_lag]
 
         lags = np.delete(lags,indices)
         corr = np.delete(corr,indices)
