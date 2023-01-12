@@ -276,7 +276,9 @@ class LSiCorrelatorIOC(Driver):
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         wait_in_seconds = self.get_converted_pv_value(Records.WAIT.name)
         wait_at_start = self.get_converted_pv_value(Records.WAIT_AT_START.name)
-        min_time_lag = self.get_converted_pv_value(Records.MIN_TIME_LAG.name)
+        min_time_lag_unscaled = self.get_converted_pv_value(Records.MIN_TIME_LAG.name)
+        # Convert min time lag to seconds for comparison against lag data
+        min_time_lag = min_time_lag_unscaled / 1e9
         self.already_started = True
         first_repetition = 1
 
