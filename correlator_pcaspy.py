@@ -33,6 +33,7 @@ from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_han
 from pvdb import STATIC_PV_DATABASE, Records
 from config import Constants, PV, LSiPVSeverity, Macro, Defaults
 
+NANOSECONDS_TO_SECONDS = 1e9
 
 def get_base_pv(reason: str) -> str:
     """
@@ -276,9 +277,9 @@ class LSiCorrelatorIOC(Driver):
         no_repetitions = self.get_converted_pv_value(Records.REPETITIONS.name)
         wait_in_seconds = self.get_converted_pv_value(Records.WAIT.name)
         wait_at_start = self.get_converted_pv_value(Records.WAIT_AT_START.name)
-        min_time_lag_unscaled = self.get_converted_pv_value(Records.MIN_TIME_LAG.name)
+        min_time_lag_ns = self.get_converted_pv_value(Records.MIN_TIME_LAG.name)
         # Convert min time lag to seconds for comparison against lag data
-        min_time_lag = min_time_lag_unscaled / 1e9
+        min_time_lag = min_time_lag_ns / NANOSECONDS_TO_SECONDS
         self.already_started = True
         first_repetition = 1
 
