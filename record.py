@@ -55,7 +55,7 @@ def float_pv_with_unit(unit: str):
         pv_definition (Dict): Contains the fields which define the PV
     """
 
-    return {'type': 'float', 'unit': unit, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}}
+    return {'type': 'float', 'unit': unit, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}, 'prec': 3}
 
 # pylint: disable=unused-argument
 def null_device_setter(*args, **kwargs):
