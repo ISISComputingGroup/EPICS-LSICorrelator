@@ -9,13 +9,13 @@ from __future__ import print_function, unicode_literals, division, absolute_impo
 import sys
 import os
 import traceback
+from functools import wraps
 from typing import Dict, TextIO, Tuple
 from time import sleep
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
-import six  # pylint: disable=import-error
 import numpy as np  # pylint: disable=import-error
 
 from data_file_interaction import DataArrays, DataFile
@@ -34,7 +34,7 @@ def _error_handler(func):
     @return: The wrapped function.
     """
     # pylint: disable=inconsistent-return-statements
-    @six.wraps(func)
+    @wraps(func)
     def _wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)

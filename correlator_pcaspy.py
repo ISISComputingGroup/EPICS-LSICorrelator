@@ -27,8 +27,6 @@ from server_common.utilities import print_and_log  # pylint: disable=import-erro
 from server_common.channel_access import ChannelAccess  # pylint: disable=import-error
 from server_common.helpers import register_ioc_start, get_macro_values  # pylint: disable=import-error
 
-import six  # pylint: disable=import-error
-
 from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
 from pvdb import STATIC_PV_DATABASE, Records
 from config import Constants, PV, LSiPVSeverity, Macro, Defaults
@@ -430,8 +428,8 @@ def main():
         description="Runs a remote IOC server.",
     )
 
-    parser.add_argument("--ioc_name", required=True, type=six.text_type)
-    parser.add_argument("--pv_prefix", required=True, type=six.text_type,
+    parser.add_argument("--ioc_name", required=True, type=str)
+    parser.add_argument("--pv_prefix", required=True, type=str,
                         help="The PV prefix of this instrument.")
 
     args = parser.parse_args()
