@@ -1,6 +1,7 @@
 """
 Contains Unit Tests for LSI Correlator
 """
+
 import unittest
 from tempfile import NamedTemporaryFile
 
@@ -12,11 +13,7 @@ from test_utils import test_data
 
 # pylint: disable=line-too-long, invalid-name
 
-macros = {
-    "SIMULATE": "1",
-    "ADDR": "127.0.0.1",
-    "FIRMWARE_REVISION": "4.0.0.3"
-    }
+macros = {"SIMULATE": "1", "ADDR": "127.0.0.1", "FIRMWARE_REVISION": "4.0.0.3"}
 
 
 class LSICorrelatorTests(unittest.TestCase):
@@ -34,7 +31,9 @@ class LSICorrelatorTests(unittest.TestCase):
         self.device = self.driver.device
         self.mocked_api.disconnected = False
 
-    def test_GIVEN_device_disconnected_WHEN_data_taken_THEN_device_reads_no_data_and_disconnected(self):
+    def test_GIVEN_device_disconnected_WHEN_data_taken_THEN_device_reads_no_data_and_disconnected(
+        self,
+    ):
         """
         Test that the device reads no data when disconnected
         """
@@ -55,7 +54,9 @@ class LSICorrelatorTests(unittest.TestCase):
         self.assertTrue(self.driver.has_data)
         self.assertTrue(self.driver.is_connected)
 
-    def test_GIVEN_device_connected_WHEN_data_taken_THEN_driver_updated_with_correlation_and_time_lags(self):
+    def test_GIVEN_device_connected_WHEN_data_taken_THEN_driver_updated_with_correlation_and_time_lags(
+        self,
+    ):
         """
         Test that the driver updates with the correlation and time lags
         """
@@ -67,7 +68,9 @@ class LSICorrelatorTests(unittest.TestCase):
         self.assertTrue(np.allclose(self.driver.corr, test_data.corr_without_nans))
         self.assertTrue(np.allclose(self.driver.lags, test_data.lags_without_nans))
 
-    def test_GIVEN_device_has_data_WHEN_data_retrieved_from_device_THEN_time_trace_made_and_no_nans_in_correlation(self):
+    def test_GIVEN_device_has_data_WHEN_data_retrieved_from_device_THEN_time_trace_made_and_no_nans_in_correlation(
+        self,
+    ):
         """
         Test that the time trace is made and no nans in correlation
         """
@@ -91,7 +94,9 @@ class LSICorrelatorTests(unittest.TestCase):
         self.driver.take_data(0)
         self.device.start.assert_called_once()
 
-    def test_WHEN_data_taken_AND_measurement_on_THEN_update_called_WHEN_measurement_off_THEN_update_not_called(self):
+    def test_WHEN_data_taken_AND_measurement_on_THEN_update_called_WHEN_measurement_off_THEN_update_not_called(
+        self,
+    ):
         """
         Test that the update method is called when data is taken and measurement is on
         """
@@ -100,7 +105,9 @@ class LSICorrelatorTests(unittest.TestCase):
         self.assertGreater(self.mocked_api.update_count, starting_update_count)
         self.assertFalse(self.mocked_api.update_called_when_measurement_not_on)
 
-    def test_WHEN_save_data_THEN_metadata_written_AND_correlation_data_written_AND_traces_written(self):
+    def test_WHEN_save_data_THEN_metadata_written_AND_correlation_data_written_AND_traces_written(
+        self,
+    ):
         """
         Test that the metadata and correlation data are written and the traces are written
         """
@@ -116,17 +123,17 @@ class LSICorrelatorTests(unittest.TestCase):
             Records.LASER_WAVELENGTH.name: 642,
             Records.SOLVENT_REFRACTIVE_INDEX.name: 1.33,
             Records.SOLVENT_VISCOSITY.name: 1,
-            Records.SAMPLE_TEMP.name: 298
+            Records.SAMPLE_TEMP.name: 298,
         }
 
         # Save data to two temporary files that are discarded
-        with NamedTemporaryFile(mode="w+") as user_file, NamedTemporaryFile(mode="w+") as archive_file:
-
+        with NamedTemporaryFile(mode="w+") as user_file, NamedTemporaryFile(
+            mode="w+"
+        ) as archive_file:
             self.driver.save_data(0, user_file, archive_file, metadata)
 
             # Read test_data.dat
             with open(test_data.test_data_file, mode="r", encoding="utf-8") as test_data_file:
-
                 test_actual_data = test_data_file.read()
 
                 # Go back to start of files after write and ignore firstline that has timestamp on it
@@ -138,5 +145,5 @@ class LSICorrelatorTests(unittest.TestCase):
                     self.assertEqual(test_actual_data, file.read())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

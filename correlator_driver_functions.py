@@ -36,6 +36,7 @@ def _error_handler(func):
     @param func: The function to wrap.
     @return: The wrapped function.
     """
+
     # pylint: disable=inconsistent-return-statements
     @wraps(func)
     def _wrapper(*args, **kwargs):
@@ -44,6 +45,7 @@ def _error_handler(func):
         # pylint: disable=broad-except
         except Exception:
             print_and_log(traceback.format_exc(), src="lsi ")
+
     return _wrapper
 
 
@@ -68,8 +70,8 @@ class LSiCorrelatorVendorInterface:
         except KeyError as key_error:
             raise RuntimeError("No IP address specified, cannot start") from key_error
         firmware_revision = macros.get(
-            Macro.FIRMWARE_REVISION.name,
-            Macro.FIRMWARE_REVISION.value["default"])
+            Macro.FIRMWARE_REVISION.name, Macro.FIRMWARE_REVISION.value["default"]
+        )
 
         if simulated:
             self.mocked_api = MockedCorrelatorAPI()
@@ -83,7 +85,9 @@ class LSiCorrelatorVendorInterface:
         self.has_data = False
 
     @staticmethod
-    def remove_data_with_time_lags_lower_than_minimum(lags: np.ndarray, corr: np.ndarray, min_time_lag: float) -> Tuple[np.ndarray, np.ndarray]:  # pylint: disable=line-too-long
+    def remove_data_with_time_lags_lower_than_minimum(
+        lags: np.ndarray, corr: np.ndarray, min_time_lag: float
+    ) -> Tuple[np.ndarray, np.ndarray]:  # pylint: disable=line-too-long
         """
         Remove lags and corresponding corr values which have lags values below the minimum time lag
         @param lags (np.ndarray): The original time lags values to remove values from
@@ -95,12 +99,14 @@ class LSiCorrelatorVendorInterface:
         """
         indices = [count for count in range(0, len(lags)) if lags[count] < min_time_lag]
 
-        lags = np.delete(lags,indices)
-        corr = np.delete(corr,indices)
+        lags = np.delete(lags, indices)
+        corr = np.delete(corr, indices)
 
         return lags, corr
 
-    def get_data_as_arrays(self, min_time_lag) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:  # pylint: disable=line-too-long
+    def get_data_as_arrays(
+        self, min_time_lag
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:  # pylint: disable=line-too-long
         """
         Collects the correlation function, time lags, raw traces and time trace as numpy arrays.
         The correlation function and time lags are filtered to finite values only.
@@ -127,7 +133,7 @@ class LSiCorrelatorVendorInterface:
         trace_b = np.asarray(self.device.TraceChB)
 
         # Time axis is number of data points collected * scaling factor
-        trace_time = np.arange(len(trace_a))*Constants.DELTA_T
+        trace_time = np.arange(len(trace_a)) * Constants.DELTA_T
 
         return corr, lags, trace_a, trace_b, trace_time
 
@@ -161,7 +167,9 @@ class LSiCorrelatorVendorInterface:
             self.corr = corr
             self.lags = lags
 
-    def save_data(self, min_time_lag: float, user_file: TextIO, archive_file: TextIO, metadata: Dict) -> None:  # pylint: disable=line-too-long
+    def save_data(
+        self, min_time_lag: float, user_file: TextIO, archive_file: TextIO, metadata: Dict
+    ) -> None:  # pylint: disable=line-too-long
         """
         Save the data to file.
         @param min_time_lag (float): The minimum time lag to include.

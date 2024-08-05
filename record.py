@@ -1,50 +1,42 @@
 """
 Contains information used to define a PCASpy PV, its fields and how its values are read and set.
 """
+
 from enum import Enum
 from typing import Callable, Dict, Optional
 
 from pcaspy.alarm import AlarmStrings, SeverityStrings  # pylint: disable=import-error
 
 PARAM_FIELDS_BINARY = {
-    'type': 'enum',
-    'enums': ["NO", "YES"],
-    'info_field': {
-        'archive': 'VAL',
-        'INTEREST': 'HIGH'
-    }
+    "type": "enum",
+    "enums": ["NO", "YES"],
+    "info_field": {"archive": "VAL", "INTEREST": "HIGH"},
 }
 
 INT_AS_FLOAT_PV = {
-    'type': 'float',
-    'prec': 0,
-    'value': 0.0,
-    'info_field': {
-        'archive': 'VAL',
-        'INTEREST': 'HIGH'
-    }
+    "type": "float",
+    "prec": 0,
+    "value": 0.0,
+    "info_field": {"archive": "VAL", "INTEREST": "HIGH"},
 }
 
 CHAR_PV_FIELDS = {
-    'type': 'char',
-    'count': 400,
-    'info_field': {
-        'archive': 'VAL',
-        'INTEREST': 'HIGH'
-    }
+    "type": "char",
+    "count": 400,
+    "info_field": {"archive": "VAL", "INTEREST": "HIGH"},
 }
 
-FLOAT_ARRAY = {'type': 'float', 'count': 400}
+FLOAT_ARRAY = {"type": "float", "count": 400}
 # Truncate as enum can only contain 16 states
-ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStrings[:16]}
-ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
+ALARM_STAT_PV_FIELDS = {"type": "enum", "enums": AlarmStrings[:16]}
+ALARM_SEVR_PV_FIELDS = {"type": "enum", "enums": SeverityStrings}
 
 
 def populate_enum_pv(enum: Enum):
     """
     Creates an enum PV definition
     """
-    return {'type': 'enum', 'enums': [member.name for member in enum]}
+    return {"type": "enum", "enums": [member.name for member in enum]}
 
 
 def float_pv_with_unit(unit: str):
@@ -56,7 +48,13 @@ def float_pv_with_unit(unit: str):
         pv_definition (Dict): Contains the fields which define the PV
     """
 
-    return {'type': 'float', 'unit': unit, 'info_field': {'archive': 'VAL', 'INTEREST': 'HIGH'}, 'prec': 3}
+    return {
+        "type": "float",
+        "unit": unit,
+        "info_field": {"archive": "VAL", "INTEREST": "HIGH"},
+        "prec": 3,
+    }
+
 
 # pylint: disable=unused-argument
 def null_device_setter(*args, **kwargs):
@@ -90,11 +88,15 @@ class Record:
     """
 
     # pylint: disable=too-many-arguments
-    def __init__(self, name: str, pv_definition: Dict,
-                 has_setpoint: Optional[bool] = False,
-                 convert_from_pv: Optional[Callable] = do_nothing,
-                 convert_to_pv: Optional[Callable] = do_nothing,
-                 device_setter: Optional[Callable] = null_device_setter):
+    def __init__(
+        self,
+        name: str,
+        pv_definition: Dict,
+        has_setpoint: Optional[bool] = False,
+        convert_from_pv: Optional[Callable] = do_nothing,
+        convert_to_pv: Optional[Callable] = do_nothing,
+        device_setter: Optional[Callable] = null_device_setter,
+    ):
         self.name = name
         self.pv_definition = pv_definition
         self.convert_from_pv = convert_from_pv
@@ -127,22 +129,17 @@ class Record:
         """
         new_fields = {}
 
-        if 'count' in self.pv_definition:
-            new_fields.update({f"{self.name}.NELM": {
-                'type': 'int',
-                'value': self.pv_definition['count']}
-                })
+        if "count" in self.pv_definition:
+            new_fields.update(
+                {f"{self.name}.NELM": {"type": "int", "value": self.pv_definition["count"]}}
+            )
 
-            new_fields.update({f"{self.name}.NORD": {
-                'type': 'int',
-                'value': 0}
-                })
+            new_fields.update({f"{self.name}.NORD": {"type": "int", "value": 0}})
 
-        if 'unit' in self.pv_definition:
-            new_fields.update({f"{self.name}.EGU": {
-                'type': 'string',
-                'value': self.pv_definition['unit']}
-                })
+        if "unit" in self.pv_definition:
+            new_fields.update(
+                {f"{self.name}.EGU": {"type": "string", "value": self.pv_definition["unit"]}}
+            )
 
         return new_fields
 
