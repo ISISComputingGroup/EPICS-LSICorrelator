@@ -4,15 +4,18 @@ Contains Constants for the LSI Correlator
 # pylint: disable=too-few-public-methods
 
 from enum import Enum
+
 from LSI import LSI_Param  # pylint: disable=import-error
-from pvdb import STATIC_PV_DATABASE, Records  # pylint: disable=unused-import
+
+from pvdb import Records  # pylint: disable=unused-import
+
 
 class Constants:
     """
     Constants used by the LSICorrelator
     """
 
-    DELTA_T = 0.0524288 # Magic number, seems to be time between measurements.
+    DELTA_T = 0.0524288  # Magic number, seems to be time between measurements.
     SLEEP_BETWEEN_MEASUREMENTS = 0.5
     DATA_DIR = r"c:\Data"
     SIMULATE_ARCHIVE_DAT_FILE_NAME = "LSICORR_IOC_test_archive_save.dat"
@@ -23,6 +26,7 @@ class Macro(Enum):
     """
     Macros used by the LSICorrelator
     """
+
     SIMULATE = {"macro": "SIMULATE"}
     ADDRESS = {"macro": "ADDR"}
     FILEPATH = {"macro": "FILEPATH"}
@@ -51,6 +55,7 @@ class PV(Enum):
         """
         return f"{prefix}{self.value}"
 
+
 class LSiPVSeverity(Enum):
     """
     Severity states of the LSi PV
@@ -61,10 +66,12 @@ class LSiPVSeverity(Enum):
     INFO = "INFO"
     INVALID = "INVALID"
 
+
 class Defaults:
     """
     Default values for the LSICorrelator
     """
+
     # Set up the PV database
     defaults = {
         Records.CORRELATIONTYPE.value: LSI_Param.CorrelationType.AUTO,
@@ -90,22 +97,24 @@ class Defaults:
         Records.OUTPUTFILE.value: "No data taken yet",
         Records.SIM.value: 0,
         Records.DISABLE.value: 0,
-        Records.MIN_TIME_LAG.value: 200
+        Records.MIN_TIME_LAG.value: 200,
     }
 
     metadata_records = [
-            Records.SCATTERING_ANGLE,
-            Records.MEASUREMENTDURATION,
-            Records.LASER_WAVELENGTH,
-            Records.SOLVENT_REFRACTIVE_INDEX,
-            Records.SOLVENT_VISCOSITY,
-            Records.SAMPLE_TEMP
-        ]
+        Records.SCATTERING_ANGLE,
+        Records.MEASUREMENTDURATION,
+        Records.LASER_WAVELENGTH,
+        Records.SOLVENT_REFRACTIVE_INDEX,
+        Records.SOLVENT_VISCOSITY,
+        Records.SAMPLE_TEMP,
+    ]
+
 
 class Schema:
     """
     File schema for the LSICorrelator
     """
+
     FILE_SCHEME = """{datetime}
 Pseudo Cross Correlation
 Scattering angle:\t{scattering_angle:.1f}

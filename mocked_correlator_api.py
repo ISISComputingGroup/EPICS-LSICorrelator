@@ -1,14 +1,17 @@
 """
 Contains Mocked Correlator API for testing
 """
+
 from time import time
-from mock import MagicMock  # pylint: disable=import-error
 
 import numpy as np  # pylint: disable=import-error
+from mock import MagicMock  # pylint: disable=import-error
 
 from pvdb import Records
 
-elements_in_float_array = Records.CORRELATION_FUNCTION.value.database_entries["CORRELATION_FUNCTION"]["count"]  # pylint: disable=line-too-long
+elements_in_float_array = Records.CORRELATION_FUNCTION.value.database_entries[
+    "CORRELATION_FUNCTION"
+]["count"]  # pylint: disable=line-too-long
 
 DATA_USED_IN_IOC_SYSTEM_TESTS = np.linspace(0, elements_in_float_array, elements_in_float_array)
 
@@ -17,6 +20,7 @@ class MockedCorrelatorAPI:
     """
     MockedCorrelatorAPI is a MagicMock object that can be used in place of a real correlator.
     """
+
     # pylint: disable=too-many-arguments, too-many-instance-attributes
     def __init__(self):
         self.device = MagicMock()
@@ -70,7 +74,9 @@ class MockedCorrelatorAPI:
             raise RuntimeError("LSI --- Cannot configure: Measurement active")
 
         if self.device.disconnected:
-            raise RuntimeError("LSI --- Cannot configure: Correlator disconnected or measurement active")  # pylint: disable=line-too-long
+            raise RuntimeError(
+                "LSI --- Cannot configure: Correlator disconnected or measurement active"
+            )  # pylint: disable=line-too-long
 
     def update(self):
         """
