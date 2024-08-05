@@ -4,26 +4,29 @@ data from the correlator API.
 """
 # pylint: disable=wrong-import-position
 
-from __future__ import print_function, unicode_literals, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import sys
 import os
+import sys
 import traceback
 from functools import wraps
-from typing import Dict, TextIO, Tuple
 from time import sleep
+from typing import Dict, TextIO, Tuple
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
 import numpy as np  # pylint: disable=import-error
+from LSICorrelator import (
+    LSICorrelator,  # pylint: disable=import-error, wrong-import-position, wrong-import-order
+)
+from server_common.utilities import (
+    print_and_log,  # pylint: disable=import-error, wrong-import-position, wrong-import-order
+)
 
-from data_file_interaction import DataArrays, DataFile
 from config import Constants, Macro
+from data_file_interaction import DataArrays, DataFile
 from mocked_correlator_api import MockedCorrelatorAPI
-
-from server_common.utilities import print_and_log  # pylint: disable=import-error, wrong-import-position, wrong-import-order
-from LSICorrelator import LSICorrelator  # pylint: disable=import-error, wrong-import-position, wrong-import-order
 
 
 def _error_handler(func):

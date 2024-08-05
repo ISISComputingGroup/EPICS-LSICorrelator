@@ -1,15 +1,15 @@
 """
 Contains the data_file_interaction class which is used to interact with the data file.
 """
-from typing import Dict, TextIO, Tuple
-from io import StringIO
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
+from io import StringIO
+from typing import Dict, TextIO, Tuple
 
 import numpy as np  # pylint: disable=import-error
 
-from pvdb import Records
 from config import Schema
+from pvdb import Records
 
 
 @dataclass

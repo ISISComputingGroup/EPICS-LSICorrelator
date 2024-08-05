@@ -4,8 +4,11 @@ Contains Constants for the LSI Correlator
 # pylint: disable=too-few-public-methods
 
 from enum import Enum
+
 from LSI import LSI_Param  # pylint: disable=import-error
-from pvdb import STATIC_PV_DATABASE, Records  # pylint: disable=unused-import
+
+from pvdb import Records  # pylint: disable=unused-import
+
 
 class Constants:
     """

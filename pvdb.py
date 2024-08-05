@@ -1,20 +1,28 @@
 """
 Contains the PV definitions for the LSI_Param Enum
 """
-from __future__ import print_function, unicode_literals, division, absolute_import
-import sys
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import os
-from functools import partial
+import sys
 from enum import Enum
+from functools import partial
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "Support", "lsicorr_vendor", "master"))
 
-from LSICorrelator import LSICorrelator  # pylint: disable=import-error, wrong-import-position
 from LSI import LSI_Param  # pylint: disable=import-error, wrong-import-position
+from LSICorrelator import LSICorrelator  # pylint: disable=import-error, wrong-import-position
 
 # pylint: disable=wrong-import-position, unused-import
-from record import (Record, populate_enum_pv, float_pv_with_unit, do_nothing,
-                    PARAM_FIELDS_BINARY, INT_AS_FLOAT_PV, CHAR_PV_FIELDS, FLOAT_ARRAY)
+from record import (
+    CHAR_PV_FIELDS,
+    FLOAT_ARRAY,
+    INT_AS_FLOAT_PV,
+    PARAM_FIELDS_BINARY,
+    Record,
+    float_pv_with_unit,
+    populate_enum_pv,
+)
 
 
 def convert_pv_enum_to_lsi_enum(enum_class, pv_value):

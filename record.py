@@ -1,8 +1,9 @@
 """
 Contains information used to define a PCASpy PV, its fields and how its values are read and set.
 """
-from typing import Dict, Optional, Callable
 from enum import Enum
+from typing import Callable, Dict, Optional
+
 from pcaspy.alarm import AlarmStrings, SeverityStrings  # pylint: disable=import-error
 
 PARAM_FIELDS_BINARY = {

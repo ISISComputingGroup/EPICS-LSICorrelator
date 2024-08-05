@@ -1,35 +1,35 @@
 """
 Correlator pcaspy and IOC Elements of the LSiCorrelator IOC
 """
-from __future__ import print_function, unicode_literals, division, absolute_import
-
-from datetime import datetime
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
-import sys
 import os
-import traceback
-from typing import Dict, Any
+import sys
 import time
+import traceback
 
 # pylint: disable=wrong-import-position
-
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from typing import Any, Dict
 
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
-from pcaspy import SimpleServer, Driver  # pylint: disable=import-error
-from pcaspy.alarm import Alarm, Severity  # pylint: disable=import-error
-
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER  # pylint: disable=import-error
-from server_common.utilities import print_and_log  # pylint: disable=import-error
+from pcaspy import Driver, SimpleServer  # pylint: disable=import-error
+from pcaspy.alarm import Alarm, Severity  # pylint: disable=import-error
 from server_common.channel_access import ChannelAccess  # pylint: disable=import-error
-from server_common.helpers import register_ioc_start, get_macro_values  # pylint: disable=import-error
+from server_common.helpers import (  # pylint: disable=import-error
+    get_macro_values,
+    register_ioc_start,
+)
+from server_common.utilities import print_and_log  # pylint: disable=import-error
 
+from config import PV, Constants, Defaults, LSiPVSeverity, Macro
 from correlator_driver_functions import LSiCorrelatorVendorInterface, _error_handler
 from pvdb import STATIC_PV_DATABASE, Records
-from config import Constants, PV, LSiPVSeverity, Macro, Defaults
 
 NANOSECONDS_TO_SECONDS = 1e9
 

@@ -1,14 +1,13 @@
 """
 Contains Unit Tests for LSI Correlator
 """
-from tempfile import NamedTemporaryFile
 import unittest
-import numpy as np  # pylint: disable=import-error
+from tempfile import NamedTemporaryFile
 
+import numpy as np  # pylint: disable=import-error
 
 from correlator_driver_functions import LSiCorrelatorVendorInterface
 from pvdb import Records
-
 from test_utils import test_data
 
 # pylint: disable=line-too-long, invalid-name

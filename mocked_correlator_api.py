@@ -2,9 +2,9 @@
 Contains Mocked Correlator API for testing
 """
 from time import time
-from mock import MagicMock  # pylint: disable=import-error
 
 import numpy as np  # pylint: disable=import-error
+from mock import MagicMock  # pylint: disable=import-error
 
 from pvdb import Records
 
