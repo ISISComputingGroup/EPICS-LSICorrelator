@@ -118,7 +118,7 @@ class LSiCorrelatorIOC(Driver):
         @param src (str): The source of the error
         """
         self.update_pv_and_write_to_device(Records.ERRORMSG.name, error)
-        print_and_log(error, severity.value, src)
+        print_and_log(error, str(severity), src)
 
     def set_disconnected_alarms(self, in_alarm: bool):
         """
