@@ -18,7 +18,7 @@ from typing import Any, Dict
 sys.path.insert(1, os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "lsicorr_vendor", "master"))
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER  # pylint: disable=import-error
+from server_common.file_path_manager import FILEPATH_MANAGER  # pylint: disable=import-error
 from pcaspy import Driver, SimpleServer  # pylint: disable=import-error
 from pcaspy.alarm import Alarm, Severity  # pylint: disable=import-error
 from server_common.channel_access import ChannelAccess  # pylint: disable=import-error
